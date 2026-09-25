@@ -128,6 +128,25 @@ def _is_terminate_command(text: str) -> bool:
     return False
 
 
+def _handle_voice_confirmation(text: str, window: JarvisWindow) -> bool:
+    """Checks if the user's speech is answering an active confirmation modal in the HUD."""
+    if not window.has_pending_confirmation():
+        return False
+
+    clean = re.sub(r"[^a-z\s]", "", text.lower()).strip()
+    approve_words = {"yes", "yeah", "yep", "proceed", "approve", "confirm", "do it", "run it", "positive", "affirmative", "go ahead", "okay", "ok"}
+    deny_words = {"no", "nope", "deny", "cancel", "abort", "stop", "negative", "dont", "do not"}
+
+    words = set(clean.split())
+    if words & approve_words or any(p in clean for p in ("go ahead", "do it", "run it")):
+        window.resolve_active_confirmation(True)
+        return True
+    elif words & deny_words:
+        window.resolve_active_confirmation(False)
+        return True
+    return False
+
+
 def _handle_voice_meta_command(
     text: str,
     window: JarvisWindow,
@@ -234,6 +253,8 @@ def _voice_loop(window: JarvisWindow, stop_event: threading.Event) -> None:
                 else:
                     print(f"You: {text}")
                     window.add_message("you", text)
+                    if _handle_voice_confirmation(text, window):
+                        continue
                     if _handle_voice_meta_command(text, window, speaker, stop_event):
                         continue
                     _process_and_reply(text, window, speaker)
@@ -273,6 +294,10 @@ def _voice_loop(window: JarvisWindow, stop_event: threading.Event) -> None:
 
                 print(f"You: {text}")
                 window.add_message("you", text)
+
+                # Check for active confirmation responses
+                if _handle_voice_confirmation(text, window):
+                    continue
 
                 # Check for termination or sleep commands
                 if _handle_voice_meta_command(text, window, speaker, stop_event):

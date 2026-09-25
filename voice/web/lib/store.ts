@@ -43,6 +43,15 @@ export interface TelemetryData {
   whisper_model?: string;
 }
 
+export interface ConfirmationRequest {
+  id: string;
+  command: string;
+  shell: string;
+  riskLevel: "HIGH" | "CRITICAL";
+  reason: string;
+  timeoutSeconds: number;
+}
+
 interface JarvisStore {
   state: JarvisState;
   level: number;
@@ -53,6 +62,7 @@ interface JarvisStore {
   telemetry: TelemetryData | null;
   cpuHistory: number[];
   toast: string | null;
+  pendingConfirmation: ConfirmationRequest | null;
 
   setState: (state: JarvisState) => void;
   setLevel: (level: number) => void;
@@ -64,7 +74,9 @@ interface JarvisStore {
   setTelemetry: (telemetry: TelemetryData) => void;
   pushCpuHistory: (val: number) => void;
   setToast: (toast: string | null) => void;
+  setPendingConfirmation: (req: ConfirmationRequest | null) => void;
 }
+
 
 let nextMessageId = 1;
 
@@ -83,6 +95,7 @@ export const useJarvisStore = create<JarvisStore>((set) => ({
   telemetry: null,
   cpuHistory: [12, 18, 15, 22, 19, 28, 24, 20, 25, 30],
   toast: null,
+  pendingConfirmation: null,
 
   setState: (state) => set({ state }),
   setLevel: (level) => set({ level }),
@@ -103,4 +116,6 @@ export const useJarvisStore = create<JarvisStore>((set) => ({
       cpuHistory: [...s.cpuHistory.slice(-14), Math.max(0, Math.min(100, Math.round(val)))],
     })),
   setToast: (toast) => set({ toast }),
+  setPendingConfirmation: (pendingConfirmation) => set({ pendingConfirmation }),
 }));
+

@@ -17,13 +17,21 @@ import functools
 import http.server
 import threading
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Optional
 
 import webview
 
 State = Literal["booting", "idle", "listening", "thinking", "speaking", "error"]
 
 _WEB_OUT_DIR = Path(__file__).parent / "web" / "out"
+
+_active_window_instance: Optional["JarvisWindow"] = None
+
+
+def get_active_window() -> Optional["JarvisWindow"]:
+    """Returns the active JarvisWindow instance if the HUD is open."""
+    return _active_window_instance
+
 
 
 def _start_static_server(directory: Path) -> int:
@@ -40,9 +48,15 @@ def _start_static_server(directory: Path) -> int:
 
 
 class _Api:
-    def __init__(self, window: webview.Window, muted_event: threading.Event) -> None:
+    def __init__(
+        self,
+        window: webview.Window,
+        muted_event: threading.Event,
+        window_wrapper: Optional["JarvisWindow"] = None,
+    ) -> None:
         self._window = window
         self._muted_event = muted_event
+        self._window_wrapper = window_wrapper
         self._is_fullscreen = False
 
     def close(self) -> None:
@@ -231,6 +245,12 @@ class _Api:
             self._window.evaluate_js("setState('error')")
             return {"success": False, "message": str(exc)}
 
+    def resolve_confirmation(self, confirmation_id: str, approved: bool) -> dict:
+        if self._window_wrapper:
+            return self._window_wrapper.resolve_confirmation(confirmation_id, approved)
+        return {"success": False, "message": "Window wrapper not connected"}
+
+
 
 class JarvisWindow:
     """Thin wrapper around the pywebview window + JS calls to drive it."""
@@ -261,7 +281,12 @@ class JarvisWindow:
             shadow=True,
             background_color="#04060a",
         )
-        api = _Api(self._window, self.muted)
+        global _active_window_instance
+        _active_window_instance = self
+        self._pending_confirmations: dict[str, dict] = {}
+        self._confirmation_lock = threading.Lock()
+
+        api = _Api(self._window, self.muted, self)
         self._window.expose(
             api.close,
             api.minimize,
@@ -275,6 +300,7 @@ class JarvisWindow:
             api.get_system_telemetry,
             api.execute_action,
             api.send_chat,
+            api.resolve_confirmation,
         )
 
     def on_close(self, callback) -> None:
@@ -289,10 +315,97 @@ class JarvisWindow:
         webview.start(target, args, gui="edgechromium")
 
     def close(self) -> None:
+        global _active_window_instance
+        _active_window_instance = None
         try:
             self._window.destroy()
         except Exception:
             pass
+
+    def show_confirmation(
+        self,
+        req_id: str,
+        command: str,
+        shell: str,
+        risk_level: str,
+        reason: str,
+        timeout_seconds: int = 20,
+    ) -> None:
+        try:
+            escaped_cmd = command.replace("\\", "\\\\").replace("'", "\\'").replace("\n", " ")
+            escaped_reason = reason.replace("\\", "\\\\").replace("'", "\\'").replace("\n", " ")
+            self._window.evaluate_js(
+                f"showConfirmation('{req_id}', '{escaped_cmd}', '{shell}', '{risk_level}', '{escaped_reason}', {timeout_seconds})"
+            )
+        except Exception:
+            pass
+
+    def hide_confirmation(self) -> None:
+        try:
+            self._window.evaluate_js("hideConfirmation()")
+        except Exception:
+            pass
+
+    def resolve_confirmation(self, confirmation_id: str, approved: bool) -> dict:
+        with self._confirmation_lock:
+            info = self._pending_confirmations.get(confirmation_id)
+            if info:
+                info["approved"] = approved
+                info["event"].set()
+                return {"success": True, "approved": approved}
+        return {"success": False, "message": "No matching confirmation pending"}
+
+    def resolve_active_confirmation(self, approved: bool) -> bool:
+        """Resolves whatever confirmation is currently pending (e.g. triggered via voice recognition)."""
+        with self._confirmation_lock:
+            if not self._pending_confirmations:
+                return False
+            for req_id, info in list(self._pending_confirmations.items()):
+                info["approved"] = approved
+                info["event"].set()
+                self.hide_confirmation()
+                return True
+        return False
+
+    def has_pending_confirmation(self) -> bool:
+        with self._confirmation_lock:
+            return bool(self._pending_confirmations)
+
+    def wait_for_confirmation(
+        self,
+        command: str,
+        shell: str = "cmd",
+        risk_level: str = "HIGH",
+        reason: str = "",
+        timeout_seconds: int = 20,
+    ) -> bool:
+        """Shows the confirmation dialog in the HUD and blocks until approved, denied, or timed out."""
+        import uuid
+        req_id = f"conf_{uuid.uuid4().hex[:8]}"
+        done_event = threading.Event()
+        info = {
+            "id": req_id,
+            "command": command,
+            "shell": shell,
+            "risk_level": risk_level,
+            "reason": reason,
+            "approved": False,
+            "event": done_event,
+        }
+
+        with self._confirmation_lock:
+            self._pending_confirmations[req_id] = info
+
+        self.show_confirmation(req_id, command, shell, risk_level, reason, timeout_seconds)
+
+        try:
+            done_event.wait(timeout=float(timeout_seconds) + 0.5)
+            self.hide_confirmation()
+            return info["approved"]
+        finally:
+            with self._confirmation_lock:
+                self._pending_confirmations.pop(req_id, None)
+
 
     def set_state(self, state: State) -> None:
         try:

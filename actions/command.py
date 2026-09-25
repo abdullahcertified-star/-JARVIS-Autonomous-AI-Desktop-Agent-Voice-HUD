@@ -34,6 +34,24 @@ def _execute(data: dict[str, Any]) -> dict[str, Any]:
     if request_text:
         # Use the intent matcher for natural language translation + safety + execution
         result = _matcher.execute_request(str(request_text), confirmed=confirmed)
+        if result.get("requires_confirmation") and not confirmed:
+            try:
+                from voice.ui import get_active_window
+                win = get_active_window()
+                if win:
+                    approved = win.wait_for_confirmation(
+                        command=result.get("command", str(request_text)),
+                        shell=result.get("shell", "cmd"),
+                        risk_level=result.get("risk_level", "HIGH"),
+                        reason=result.get("message", "High privilege command requires explicit confirmation."),
+                        timeout_seconds=20,
+                    )
+                    if approved:
+                        return _execute({**data, "confirmed": True})
+                    return fail("Command execution was cancelled by user.", **result)
+            except Exception:
+                pass
+
         msg = result.get("message", "OK")
         extra = {k: v for k, v in result.items() if k != "message"}
         return ok(msg, **extra) if result.get("success") else fail(msg, **extra)
@@ -48,6 +66,24 @@ def _execute(data: dict[str, Any]) -> dict[str, Any]:
             timeout=data.get("timeout"),
             confirmed=confirmed,
         )
+        if exec_result.get("requires_confirmation") and not confirmed:
+            try:
+                from voice.ui import get_active_window
+                win = get_active_window()
+                if win:
+                    approved = win.wait_for_confirmation(
+                        command=cmd_str,
+                        shell=shell,
+                        risk_level=exec_result.get("risk_level", "HIGH"),
+                        reason=exec_result.get("message", "High privilege command requires explicit confirmation."),
+                        timeout_seconds=20,
+                    )
+                    if approved:
+                        return _execute({**data, "confirmed": True})
+                    return fail("Command execution was cancelled by user.", **exec_result)
+            except Exception:
+                pass
+
         spoken = ResultInterpreter.interpret(cmd_str, exec_result)
         exec_result["response"] = spoken
         extra = {k: v for k, v in exec_result.items() if k != "message"}

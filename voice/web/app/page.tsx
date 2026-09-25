@@ -8,6 +8,7 @@ import BootScreen from "@/components/BootScreen";
 import NavBar from "@/components/NavBar";
 import ChatPanel from "@/components/ChatPanel";
 import Dashboard from "@/components/Dashboard";
+import ConfirmationModal from "@/components/ConfirmationModal";
 import styles from "./page.module.css";
 
 // Three.js/WebGL needs the real browser environment -- never render it
@@ -74,6 +75,7 @@ export default function Page() {
           </button>
         )}
       </div>
+      <ConfirmationModal />
     </div>
   );
 }

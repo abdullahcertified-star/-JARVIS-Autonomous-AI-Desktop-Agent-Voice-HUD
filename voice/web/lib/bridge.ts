@@ -10,6 +10,15 @@ declare global {
     setMuted: (muted: boolean) => void;
     addMessage: (who: string, text: string, tone: string) => void;
     clearLog: () => void;
+    showConfirmation: (
+      id: string,
+      command: string,
+      shell: string,
+      riskLevel: string,
+      reason: string,
+      timeoutSeconds?: number
+    ) => void;
+    hideConfirmation: () => void;
     pywebview?: {
       api: {
         close: () => Promise<void>;
@@ -24,6 +33,7 @@ declare global {
         get_system_telemetry: () => Promise<TelemetryData & { success: boolean }>;
         execute_action: (payload: any) => Promise<any>;
         send_chat: (text: string) => Promise<{ success: boolean; reply: string }>;
+        resolve_confirmation: (id: string, approved: boolean) => Promise<any>;
       };
     };
   }
@@ -125,6 +135,7 @@ export function useBridge(): void {
   const setTelemetry = useJarvisStore((s) => s.setTelemetry);
   const pushCpuHistory = useJarvisStore((s) => s.pushCpuHistory);
   const setIsFullscreen = useJarvisStore((s) => s.setIsFullscreen);
+  const setPendingConfirmation = useJarvisStore((s) => s.setPendingConfirmation);
 
   useEffect(() => {
     window.setState = (state) => setState(state as JarvisState);
@@ -133,6 +144,20 @@ export function useBridge(): void {
     window.addMessage = (who, text, tone) =>
       addMessage(who as Speaker, text, (tone as Tone) || "positive");
     window.clearLog = () => clearLog();
+
+    window.showConfirmation = (id, command, shell, riskLevel, reason, timeoutSeconds) => {
+      setPendingConfirmation({
+        id,
+        command,
+        shell,
+        riskLevel: (riskLevel === "CRITICAL" ? "CRITICAL" : "HIGH"),
+        reason,
+        timeoutSeconds: timeoutSeconds || 20,
+      });
+    };
+    window.hideConfirmation = () => {
+      setPendingConfirmation(null);
+    };
 
     const bootTimer = setTimeout(() => setState("idle"), 4000);
 
