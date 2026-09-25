@@ -470,6 +470,35 @@ def create_custom_workflow(name: str, steps: list, description: str = "") -> str
     return _format_result(res)
 
 
+def set_focus_mode(enable: bool, goal: str = "") -> str:
+    """Enable or disable Focus / Do Not Disturb mode. When enabled, non-critical background notifications are silenced."""
+    op = "enable_focus" if enable else "disable_focus"
+    payload = {"action": "context", "operation": op}
+    if goal and enable:
+        payload["goal"] = goal
+    res = dispatch(payload)
+    return _format_result(res)
+
+
+def get_focus_status() -> str:
+    """Check the status of Focus Mode and how many minutes of focused work have elapsed."""
+    res = dispatch({"action": "context", "operation": "get_focus_status"})
+    return _format_result(res)
+
+
+def get_user_presence() -> str:
+    """Inspect user presence (active, idle, away) and seconds since last keyboard or mouse input."""
+    res = dispatch({"action": "context", "operation": "get_presence"})
+    return _format_result(res)
+
+
+def get_ambient_context() -> str:
+    """Get full ambient context: user presence, idle time, focus mode state, and quiet hours status."""
+    res = dispatch({"action": "context", "operation": "get_ambient_context"})
+    return _format_result(res)
+
+
+
 
 
 def calculate(expression: str) -> str:
@@ -877,6 +906,10 @@ ALL_TOOLS = [
     run_workflow,
     list_workflows,
     create_custom_workflow,
+    set_focus_mode,
+    get_focus_status,
+    get_user_presence,
+    get_ambient_context,
     calculate,
     get_detailed_system_info,
     quick_note,
@@ -1122,7 +1155,26 @@ def check_fast_path(text: str) -> Optional[str]:
     if re.search(r"\b(?:list\s+(?:all\s+)?(?:workflows|macros)|show\s+(?:my\s+)?(?:workflows|macros))\b", lowered):
         return list_workflows()
 
+    # 20. Ambient context & Focus/DND mode fast-paths:
+    if re.search(r"\b(?:start|enter|enable|activate|turn\s+on)\s+(?:focus\s+mode|dnd|do\s+not\s+disturb)\b", lowered) or lowered in ("focus mode", "focus mode on", "enable dnd", "do not disturb on"):
+        goal_m = re.search(r"\b(?:focus\s+mode|dnd|do\s+not\s+disturb)\s+(?:for|to|on)\s+(.+)", lowered)
+        goal = goal_m.group(1).strip() if goal_m else ""
+        return set_focus_mode(True, goal)
+
+    if re.search(r"\b(?:stop|exit|disable|deactivate|turn\s+off)\s+(?:focus\s+mode|dnd|do\s+not\s+disturb)\b", lowered) or lowered in ("focus mode off", "disable dnd", "do not disturb off", "exit focus"):
+        return set_focus_mode(False)
+
+    if re.search(r"\b(?:focus\s+(?:status|state)|how\s+long\s+have\s+i\s+been\s+focusing|am\s+i\s+in\s+focus\s+mode)\b", lowered):
+        return get_focus_status()
+
+    if re.search(r"\b(?:am\s+i\s+idle|check\s+presence|how\s+long\s+have\s+i\s+been\s+idle|user\s+presence)\b", lowered):
+        return get_user_presence()
+
+    if re.search(r"\b(?:ambient\s+context|ambient\s+status|context\s+status)\b", lowered):
+        return get_ambient_context()
+
     return None
+
 
 
 

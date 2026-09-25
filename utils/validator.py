@@ -31,7 +31,9 @@ ACTION_SCHEMAS: dict[str, list[str]] = {
     "command": ["operation"],
     "vision": ["operation"],
     "macro": ["operation"],
+    "context": ["operation"],
 }
+
 
 
 

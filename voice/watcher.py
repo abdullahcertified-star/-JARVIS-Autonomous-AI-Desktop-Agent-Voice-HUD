@@ -179,11 +179,20 @@ class SystemWatcher:
             try:
                 alerts = self.check_metrics()
                 for alert in alerts:
+                    try:
+                        from actions.context import should_suppress_alert
+                        if should_suppress_alert(alert.severity):
+                            logger.info("Alert %s suppressed due to active Focus Mode or Quiet Hours.", alert.alert_type)
+                            continue
+                    except Exception:
+                        pass
+
                     if self.on_alert:
                         try:
                             self.on_alert(alert)
                         except Exception as exc:
                             logger.error("Error invoking alert handler: %s", exc)
+
             except Exception as exc:
                 logger.error("Unexpected error in SystemWatcher loop: %s", exc)
 

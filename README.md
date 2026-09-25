@@ -168,6 +168,12 @@ JARVIS includes a floating desktop HUD featuring a Next.js/Three.js interactive 
   - `morning_briefing`: *"Morning routine"* sets volume, reads top technology news, and reports battery/network status.
 - **Custom User Macros**: Create, save, and delete custom chained desktop sequences saved persistently in `database/workflows.json`.
 
+### Ambient Context, Focus / DND & Quiet Hours
+- **Focus & Do-Not-Disturb Mode**: Say *"Jarvis, enter focus mode on machine learning"* to activate focus tracking and silence non-critical background notifications. Ask *"How long have I been focusing?"* for live session duration reports.
+- **Intelligent Alert Suppression**: Proactive background alerts (RAM/disk warnings) are automatically suppressed during active focus sessions and quiet hours, while critical safety alerts (e.g. low battery reserve) always break through.
+- **Windows User Presence & Idle Detection**: Queries native `GetLastInputInfo` (0ms overhead) to classify state as *active* (<1 min), *idle* (1–5 min), or *away* (>5 min).
+- **Quiet Hours**: Automatically enforces nighttime quiet periods (default: 23:00 to 07:00) with configurable start/end hours.
+
 ---
 
 ## Architecture
@@ -177,7 +183,7 @@ app.py                  Flask HTTP API (/chat, /execute, /dashboard)
 agent.py                Gemini AI Agent with function calling & 0ms fast-paths
 dispatcher.py           Central router, request validator, and latency logger
 config.py               Configuration, paths, environment variables
-actions/                Action domain handlers (macro, vision, command, apps, explorer, etc.)
+actions/                Action domain handlers (context, macro, vision, command, apps, etc.)
 commands/               Windows Command Master reference knowledge base & safety engine
   catalog.py            PDF extractor and catalog compiler (492 commands)
   database.py           SQLite (commands.db) & JSON (commands.json) store with fuzzy search
@@ -190,14 +196,14 @@ scanner/                Windows filesystem, Start Menu, Registry, and Store app 
 search/                 RapidFuzz indexing over installed applications
 voice/                  Voice client: wake word listener, Whisper STT, TTS, and pywebview HUD
   web/                  Next.js 15 + Three.js holographic particle orb application
-tests/                  Pytest suite (130 automated unit and integration tests)
+tests/                  Pytest suite (137 automated unit and integration tests)
 ```
 
 ---
 
 ## Automated Tests
 
-Run the full automated test suite (including command database, safety blocks, agent tools, vision QA, macro orchestrator, and API routes):
+Run the full automated test suite (including command database, safety blocks, agent tools, vision QA, macro orchestrator, ambient context, and API routes):
 
 ```powershell
 .venv\Scripts\pip install -r requirements-dev.txt
@@ -205,7 +211,7 @@ Run the full automated test suite (including command database, safety blocks, ag
 ```
 
 ```text
-======================= 130 passed, 1 warning in 21.43s =======================
+======================= 137 passed, 1 warning in 23.06s =======================
 ```
 
 ---
