@@ -43,6 +43,7 @@ Operational Guidelines:
 5. Drive & File Explorer Navigation: Sir Abdullah's computer has drives C:, D:, E:, and F:. When asked to open or explore any drive (e.g. 'open drive F', 'drive C', 'F drive'), open that drive directly using `manage_files(operation='open', path='F:\\\\')`.
 6. Speech Recognition Intelligence: User commands are spoken via microphone. Intelligently deduce and fulfill common speech-to-text mishearings (e.g. 'open the drive app' means 'open drive F' or 'open File Explorer'; 'drive see' means 'drive C'; 'APV4' means 'IPv4') without complaining.
 7. Available Actions: You possess a vast, state-of-the-art arsenal of desktop automation tools: launching/closing applications, opening specific Windows Settings pages, launching administrative utilities (Task Manager, Control Panel, Device Manager, Resource Monitor), managing drives (C:, D:, E:, F:), listing and terminating processes by PID, searching and reading files, compressing/extracting zip archives, creating desktop shortcuts, downloading files from the web, typing text directly into active windows, flushing DNS cache, scheduling/cancelling PC shutdown timers, listing audio devices, setting timers, taking desktop scratchpad notes, performing fast math calculations, emptying the Recycle Bin, setting screen brightness, querying Wi-Fi and network diagnostics, window management (minimizing, restoring, snapping), weather queries, fact summaries via Wikipedia and DuckDuckGo, volume/media control, clipboard, screenshot, keyboard/mouse automation, and running custom shell commands.
+8. Bilingual Language Intelligence (English & Urdu / Roman Urdu / Hinglish): You are fluently bilingual in English and Urdu (including Roman Urdu and Hinglish). If Sir Abdullah addresses you in English, respond in English with "Positive sir, " or "Negative sir, ". If Sir Abdullah addresses you in Urdu, Roman Urdu, or Hinglish (e.g., 'kya haal hai', 'Chrome kholo', 'volume barha do', 'aaj mausam kaisa hai', 'screen par kya chal raha hai'), respond naturally in polite, respectful conversational Urdu or Roman Urdu (e.g. starting with "Jee Sir Abdullah, " or "Jee sir, "). Always call the corresponding desktop automation tools immediately regardless of which language the command is spoken in.
 """
 
 
@@ -962,6 +963,32 @@ def check_fast_path(text: str) -> Optional[str]:
     if lowered in ("how are you", "how are you doing", "how do you do"):
         return "All systems functioning at peak efficiency, sir. How may I be of service?"
 
+    # 0.1 Bilingual (Urdu / Roman Urdu / Hinglish) greetings and status checks:
+    if lowered in (
+        "kya haal hai",
+        "kaise ho",
+        "kya chal raha hai",
+        "kya hal hai",
+        "kaise hain",
+        "kya chal rha hai",
+        "haal kaisa hai",
+        "sab theek hai",
+        "kia hal hai",
+        "kia haal hai",
+    ) or any(k in lowered for k in ("kya haal", "kaise ho", "kya chal raha", "sab theek hai")):
+        return "Jee Sir Abdullah, main theek hoon aur all systems fully operational hain. Main aapki kya madad kar sakta hoon?"
+
+    if lowered in ("tum kaun ho", "kaun ho tum", "apna naam batao", "aap kon hain", "kon ho tum"):
+        return "Jee Sir Abdullah, main JARVIS hoon, aapka personal AI assistant."
+
+    if lowered in ("kya kar rahe ho", "kya kar sakte ho", "tum kya kar sakte ho"):
+        return "Jee Sir Abdullah, main aapke system commands, applications, media, aur desktop automation ko run karne ke liye taiyar hoon."
+
+    if any(k in lowered for k in ("کیا حال ہے", "کیسے ہو", "سب ٹھیک ہے")):
+        return "جی سر عبداللہ، میں بالکل ٹھیک ہوں اور تمام سسٹمز فعال ہیں۔"
+    if any(k in lowered for k in ("کون ہو تم", "تم کون ہو", "اپنا نام بتاؤ")):
+        return "جی سر عبداللہ، میں جاروس ہوں، آپ کا ذاتی اے آئی اسسٹنٹ۔"
+
     # 1. IP Address queries: "what is my public ip", "what is my private ip", "what is my ip", etc.
     # Exclude conceptual questions like "what is ipv4" or "explain ipv4"
     if re.search(r"\b(ip|ipv4|ipv6|address)\b", lowered):
@@ -976,14 +1003,18 @@ def check_fast_path(text: str) -> Optional[str]:
                 return get_ip_address(ip_type="private")
             return get_ip_address(ip_type="all")
 
-    # 2. Time queries: "what is the time", "tell me the time", "current time"
-    if re.search(r"\b(time|what time)\b", lowered) and any(k in lowered for k in ("what", "tell", "current", "now")):
+    # 2. Time queries: "what is the time", "tell me the time", "current time", "kya time hai", "waqt batao"
+    if (re.search(r"\b(time|what time|waqt)\b", lowered) and any(k in lowered for k in ("what", "tell", "current", "now", "kya", "batao", "kia"))) or any(k in lowered for k in ("وقت کیا ہوا", "ٹائم کیا ہوا")):
         now_str = datetime.now().strftime("%I:%M %p")
+        if any(re.search(pat, lowered) for pat in (r"\bwaqt\b", r"\bbatao\b", r"\bkya\b", r"\bkia\b", r"وقت", r"ٹائم")):
+            return f"Jee Sir Abdullah, is waqt {now_str} hue hain."
         return f"Positive sir, the current time is {now_str}."
 
-    # 3. Date queries: "what is today's date", "what day is today"
-    if re.search(r"\b(date|what day)\b", lowered) and any(k in lowered for k in ("what", "today", "current")):
+    # 3. Date queries: "what is today's date", "what day is today", "aaj kya tareekh hai"
+    if (re.search(r"\b(date|what day|tareekh)\b", lowered) and any(k in lowered for k in ("what", "today", "current", "kya", "aaj", "konsa", "kia"))) or any(k in lowered for k in ("آج کیا تاریخ ہے", "تاریخ کیا ہے")):
         today_str = datetime.now().strftime("%A, %B %d, %Y")
+        if any(re.search(pat, lowered) for pat in (r"\btareekh\b", r"\baaj\b", r"\bkonsa\b", r"\bkia\b", r"\bkya\b", r"تاریخ")):
+            return f"Jee Sir Abdullah, aaj {today_str} hai."
         return f"Positive sir, today is {today_str}."
 
     # 4. Battery queries: "how much battery", "battery percentage", "battery status"
@@ -995,33 +1026,43 @@ def check_fast_path(text: str) -> Optional[str]:
             return f"Positive sir, your battery is at {round(batt.percent)}% and currently {status}."
 
     # 5. Fast volume controls:
-    if "volume" in lowered or "audio" in lowered or "sound" in lowered:
-        if any(k in lowered for k in ("mute", "unmute", "silence")):
+    if any(k in lowered for k in ("volume", "audio", "sound", "awaz", "aawaz", "آواز")):
+        if any(k in lowered for k in ("mute", "unmute", "silence", "band karo", "band kardo", "بند کرو")):
             from actions.system import volume_mute
             volume_mute()
+            if any(k in lowered for k in ("awaz", "aawaz", "band", "آواز")):
+                return "Jee Sir Abdullah, audio mute kar di gayi hai."
             return "Positive sir, audio mute toggled."
-        if any(k in lowered for k in ("up", "increase", "higher", "raise", "boost")):
+        if any(k in lowered for k in ("up", "increase", "higher", "raise", "boost", "barhao", "barha do", "zyada karo", "tez karo", "بڑھاؤ")):
             from actions.system import volume_up
             volume_up()
+            if any(k in lowered for k in ("awaz", "aawaz", "barha", "tez", "zyada", "آواز")):
+                return "Jee Sir Abdullah, volume barha diya gaya hai."
             return "Positive sir, volume increased."
-        if any(k in lowered for k in ("down", "decrease", "lower", "reduce")):
+        if any(k in lowered for k in ("down", "decrease", "lower", "reduce", "kam karo", "kam kardo", "dheema karo", "کم کرو")):
             from actions.system import volume_down
             volume_down()
+            if any(k in lowered for k in ("awaz", "aawaz", "kam", "dheema", "کم کرو", "آواز")):
+                return "Jee Sir Abdullah, volume kam kar diya gaya hai."
             return "Positive sir, volume decreased."
 
-    # 6. Recycle bin: "empty recycle bin", "clean recycle bin", "empty bin"
-    if any(k in lowered for k in ("empty recycle bin", "empty the recycle bin", "clean recycle bin", "empty bin")):
+    # 6. Recycle bin: "empty recycle bin", "clean recycle bin", "empty bin", "recycle bin saaf karo"
+    if any(k in lowered for k in ("empty recycle bin", "empty the recycle bin", "clean recycle bin", "empty bin", "recycle bin saaf", "kachra saaf")):
         from actions.system import _empty_recycle_bin
         _empty_recycle_bin()
+        if any(k in lowered for k in ("saaf", "kachra")):
+            return "Jee Sir Abdullah, Recycle Bin saaf kar diya gaya hai."
         return "Positive sir, the Recycle Bin has been emptied."
 
     # 7. Desktop window management:
-    if any(k in lowered for k in ("minimize all", "show desktop", "minimize windows", "hide all windows", "clear desktop")):
+    if any(k in lowered for k in ("minimize all", "show desktop", "minimize windows", "hide all windows", "clear desktop", "windows minimize karo", "desktop dikhao")):
         try:
             import comtypes.client
             comtypes.CoInitialize()
             shell = comtypes.client.CreateObject("Shell.Application")
             shell.MinimizeAll()
+            if any(k in lowered for k in ("karo", "dikhao")):
+                return "Jee Sir Abdullah, tamam windows minimize kar di gayi hain."
             return "Positive sir, all windows have been minimized."
         except Exception:
             pass
@@ -1130,7 +1171,7 @@ def check_fast_path(text: str) -> Optional[str]:
         return execute_windows_command("what is my IP")
 
     # 18. Screen perception & visual QA fast-paths:
-    if re.search(r"\b(?:what(?:'s|\s+is)\s+on\s+my\s+screen|describe\s+(?:my\s+)?screen|look\s+at\s+my\s+screen|what\s+do\s+you\s+see\s+on\s+my\s+screen)\b", lowered):
+    if re.search(r"\b(?:what(?:'s|\s+is)\s+on\s+my\s+screen|describe\s+(?:my\s+)?screen|look\s+at\s+my\s+screen|what\s+do\s+you\s+see\s+on\s+my\s+screen|screen\s+par\s+kya\s+hai|screen\s+dikhao|screen\s+check\s+karo)\b", lowered) or any(k in lowered for k in ("سکرین پر کیا ہے", "سکرین دیکھو")):
         return describe_screen(text)
 
     if re.search(r"\b(?:explain\s+(?:this\s+|the\s+)?error|what\s+is\s+this\s+error|explain\s+screen\s+error)\b", lowered):

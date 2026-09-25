@@ -44,9 +44,14 @@ GEMINI_TTS_VOICE: str = os.getenv("GEMINI_TTS_VOICE", "Algenib")
 EDGE_VOICE: str = os.getenv("JARVIS_EDGE_VOICE", "en-US-ChristopherNeural")
 EDGE_PITCH: str = os.getenv("JARVIS_EDGE_PITCH", "-4Hz")
 EDGE_RATE: str = os.getenv("JARVIS_EDGE_RATE", "-2%")
+EDGE_URDU_VOICE: str = os.getenv("JARVIS_EDGE_URDU_VOICE", "ur-PK-AsadNeural")
+EDGE_URDU_PITCH: str = os.getenv("JARVIS_EDGE_URDU_PITCH", "+0Hz")
+EDGE_URDU_RATE: str = os.getenv("JARVIS_EDGE_URDU_RATE", "+0%")
+WHISPER_LANGUAGE: str = os.getenv("JARVIS_WHISPER_LANGUAGE", "auto")
 COMMA_PAUSE_SEC: float = float(os.getenv("JARVIS_COMMA_PAUSE_SEC", "0.7"))
 PERIOD_PAUSE_SEC: float = float(os.getenv("JARVIS_PERIOD_PAUSE_SEC", "1.0"))
 AI_SPEECH_CORRECTION: bool = os.getenv("JARVIS_AI_SPEECH_CORRECTION", "true").lower() in ("true", "1", "yes")
+
 
 SAMPLE_RATE = 16_000  # required by both openWakeWord and Whisper
 

@@ -155,6 +155,17 @@ JARVIS includes a floating desktop HUD featuring a Next.js/Three.js interactive 
   - Say *"Jarvis terminate yourself"*, *"shutdown jarvis"*, or *"exit"* to close the application and stop all background processes cleanly.
 
 
+### Bilingual Auto-Switch (English & Urdu / Roman Urdu / Hinglish)
+- **Seamless Multilingual Listening**: Multilingual Whisper (`faster-whisper`) automatically transcribes and understands English, Urdu Nastaliq, Roman Urdu, and Hinglish with zero manual language switching.
+- **Dynamic Dual-Engine Speech Synthesis**: Intelligently auto-switches TTS voices in real-time:
+  - **English**: Deep cinematic tone via `en-US-ChristopherNeural` (`-4Hz`, `-2%`).
+  - **Urdu / Roman Urdu**: Natural native pronunciation via Microsoft Edge Neural `ur-PK-AsadNeural` (`+0Hz`).
+- **Conversational Language Mirroring**: Speaks to Sir Abdullah in whichever language he addresses the assistant in:
+  - English: *"Positive sir, Google Chrome has been launched."*
+  - Urdu / Roman Urdu: *"Jee Sir Abdullah, volume barha diya gaya hai."* / *"Jee Sir Abdullah, is waqt 05:00 AM hue hain."*
+- **0ms Bilingual Fast-Paths**: Instant zero-latency responses for Urdu greetings (*"kya haal hai"*, *"kaise ho"*), time/date (*"kya time hai"*, *"aaj kya tareekh hai"*), volume controls (*"awaz barhao"*, *"awaz kam karo"*, *"awaz band karo"*), and maintenance (*"recycle bin saaf karo"*).
+- **Clean Zero-Beep Audio**: Silent, professional voice UX without distracting speech-start or speech-end beeps.
+
 ### Multimodal Screen Perception & Vision QA (Gemini VLM)
 - **Visual Desktop QA**: Ask *"Jarvis, what is on my screen?"*, *"Describe my screen"*, or *"What do you see?"* for an instant, natural summary of active windows and visual content.
 - **Smart Error Debugger**: Ask *"Jarvis, explain this error"* — JARVIS scans the screen for error dialogs, red terminal stack traces, or exception popups, identifies the root cause, and provides a direct fix.
@@ -198,14 +209,14 @@ scanner/                Windows filesystem, Start Menu, Registry, and Store app 
 search/                 RapidFuzz indexing over installed applications
 voice/                  Voice client: wake word listener, Whisper STT, TTS, and pywebview HUD
   web/                  Next.js 15 + Three.js holographic particle orb application
-tests/                  Pytest suite (137 automated unit and integration tests)
+tests/                  Pytest suite (154 automated unit and integration tests)
 ```
 
 ---
 
 ## Automated Tests
 
-Run the full automated test suite (including command database, safety blocks, agent tools, vision QA, macro orchestrator, ambient context, and API routes):
+Run the full automated test suite (including command database, safety blocks, agent tools, vision QA, macro orchestrator, ambient context, bilingual auto-switch, and API routes):
 
 ```powershell
 .venv\Scripts\pip install -r requirements-dev.txt
@@ -213,7 +224,7 @@ Run the full automated test suite (including command database, safety blocks, ag
 ```
 
 ```text
-======================= 137 passed, 1 warning in 23.06s =======================
+======================= 154 passed, 1 warning in 21.06s =======================
 ```
 
 ---

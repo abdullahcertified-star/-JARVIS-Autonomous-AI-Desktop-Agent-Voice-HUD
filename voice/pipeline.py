@@ -57,7 +57,19 @@ def enforce_status_prefix(text: str) -> str:
     if any(phrase in lowered for phrase in ("at your service", "how may i assist", "standing by", "goodbye")):
         return cleaned
 
+    # Preserve Urdu affirmative or polite salutations
+    if re.match(r"^(?:jee|ji|haan|shukriya|sahih|theek)\s*(?:sir|sir abdullah)?[,\s]*", cleaned, re.IGNORECASE):
+        return cleaned
+
+    # If in Urdu Nastaliq script
+    if re.search(r"[\u0600-\u06FF]", cleaned):
+        if any(cleaned.startswith(p) for p in ("جی سر", "جی سر عبداللہ", "معذرت سر", "معاف کیجیے")):
+            return cleaned
+        prefix = "جی سر عبداللہ، " if classify_reply(cleaned) == "positive" else "معذرت سر، "
+        return f"{prefix}{cleaned}"
+
     # Check if already starts with Positive/Affirmative
+
     pos_match = re.match(r"^(?:positive|affirmative)\s*,?\s*(?:sir|sir abdullah)?[,\s]*", cleaned, re.IGNORECASE)
     if pos_match:
         rest = cleaned[pos_match.end():].lstrip(" ,.-:")
@@ -176,7 +188,9 @@ class Transcriber:
         "Hey Jarvis, Sir Abdullah. Open drive C, drive D, drive E, drive F, drive G, C:, D:, E:, F:, "
         "File Explorer, Local Disk C, Local Disk D, Local Disk E, Local Disk F, Windows folders, desktop, files, "
         "What is IPv4, IPv6, cicada, cicadas, insect, biology, science, IP address, "
-        "Windows desktop automation, applications, Ethernet, Wi-Fi, volume, Chrome, YouTube, France, Paris."
+        "Windows desktop automation, applications, Ethernet, Wi-Fi, volume, Chrome, YouTube, France, Paris, "
+        "kholo, band karo, chalao, volume barhao, kam karo, kaise ho, mausam kaisa hai, shukriya, "
+        "kya haal hai, screen dikhao, batao, suno, kardo, chalao."
     )
 
     def __init__(self) -> None:
@@ -222,9 +236,11 @@ class Transcriber:
         # 1. Try Whisper if successfully initialized
         if self._whisper is not None:
             try:
+                whisper_lang = getattr(config, "WHISPER_LANGUAGE", "auto")
+                lang_arg = None if whisper_lang in ("auto", "all", "detect", None) else whisper_lang
                 segments, _info = self._whisper.transcribe(
                     audio,
-                    language="en",
+                    language=lang_arg,
                     initial_prompt=self._PROMPT,
                     beam_size=5,
                     temperature=0.0,
@@ -234,6 +250,7 @@ class Transcriber:
                     vad_filter=True,
                     vad_parameters=dict(min_silence_duration_ms=400, speech_pad_ms=200),
                 )
+
                 raw_text = " ".join(segment.text.strip() for segment in segments).strip()
                 if raw_text:
                     return ai_clean_voice_command(raw_text)
@@ -389,7 +406,39 @@ def format_speech_ssml(text: str, comma_ms: int = 700, period_ms: int = 1000) ->
     return ssml
 
 
+def detect_voice_for_text(text: str) -> tuple[str, str, str]:
+    """Dynamically detects whether text is in Urdu (Nastaliq or Roman Urdu) or English,
+    and returns (voice_name, pitch, rate) for natural, native pronunciation."""
+    default_voice = getattr(config, "EDGE_VOICE", "en-US-ChristopherNeural")
+    default_pitch = getattr(config, "EDGE_PITCH", "-4Hz")
+    default_rate = getattr(config, "EDGE_RATE", "-2%")
+
+    urdu_voice = getattr(config, "EDGE_URDU_VOICE", "ur-PK-AsadNeural")
+    urdu_pitch = getattr(config, "EDGE_URDU_PITCH", "+0Hz")
+    urdu_rate = getattr(config, "EDGE_URDU_RATE", "+0%")
+
+    if not text:
+        return default_voice, default_pitch, default_rate
+
+    # 1. Direct Urdu Nastaliq / Arabic Unicode script detection
+    if re.search(r"[\u0600-\u06FF]", text):
+        return urdu_voice, urdu_pitch, urdu_rate
+
+    # 2. Roman Urdu / Hinglish keyword patterns
+    lowered = text.lower()
+    roman_urdu_words = (
+        r"\b(?:jee|ji|haan|nahi|nahin|hukam|madad|karta|karti|suno|kholo|chalao|band\s+karo)\b",
+        r"\b(?:barha\s+do|barhao|kam\s+karo|shukriya|aapka|apka|mera|meri|kya\s+haal|kaise\s+ho)\b",
+        r"\b(?:mausam|tareekh|waqt|batao|kardo|sahih\s+hai|theek\s+hai|janab|bhai)\b",
+    )
+    if any(re.search(pat, lowered) for pat in roman_urdu_words):
+        return urdu_voice, urdu_pitch, urdu_rate
+
+    return default_voice, default_pitch, default_rate
+
+
 class Speaker:
+
     """Synthesizes speech with Google Gemini TTS or Edge Neural TTS.
     Features real-time PyAV packet streaming and unified continuous playback with
     humanized neural pauses (700ms at commas, 1000ms at sentence breaks).
@@ -454,9 +503,8 @@ class Speaker:
             if not clean_text:
                 return False
 
-            voice = getattr(config, "EDGE_VOICE", "en-US-ChristopherNeural")
-            pitch = getattr(config, "EDGE_PITCH", "-4Hz")
-            rate = getattr(config, "EDGE_RATE", "-2%")
+            voice, pitch, rate = detect_voice_for_text(clean_text)
+
 
             async def _download_audio(content: str) -> bytes:
                 comm = edge_tts.Communicate(content, voice, pitch=pitch, rate=rate)
