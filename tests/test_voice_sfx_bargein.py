@@ -58,13 +58,12 @@ def test_barge_in_monitor_lifecycle():
 
 def test_barge_in_detects_loud_voice():
     interrupt_event = threading.Event()
-    mock_vad = MagicMock()
-    mock_vad.evaluate_frame.return_value = (True, 0.95, 3000.0)
-    monitor = BargeInMonitor(interrupt_event, vad=mock_vad)
+    monitor = BargeInMonitor(interrupt_event)
 
-    # Mock open_input_stream to return frames simulating user talking
+    # Mock open_input_stream to return loud frames simulating user talking
     mock_stream = MagicMock()
-    loud_frame = (np.ones((512, 1), dtype=np.int16) * 3000)
+    # 800 samples of loud signal
+    loud_frame = (np.ones((800, 1), dtype=np.int16) * 3000)
     mock_stream.read.return_value = (loud_frame, False)
 
     mock_stream_ctx = MagicMock()
@@ -79,6 +78,8 @@ def test_barge_in_detects_loud_voice():
         def fake_getattr(obj, name, default=None):
             if name == "BARGE_IN_GRACE_PERIOD_SEC":
                 return 0.0
+            if name == "BARGE_IN_ENERGY_RATIO":
+                return 1.5
             if name == "BARGE_IN_ENABLED":
                 return True
             return getattr(obj, name, default)

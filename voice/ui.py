@@ -21,7 +21,7 @@ from typing import Literal, Optional
 
 import webview
 
-State = Literal["booting", "idle", "listening", "thinking", "speaking", "interrupted", "error"]
+State = Literal["booting", "idle", "listening", "thinking", "speaking", "error"]
 
 _WEB_OUT_DIR = Path(__file__).parent / "web" / "out"
 
@@ -408,11 +408,10 @@ class JarvisWindow:
                 self._pending_confirmations.pop(req_id, None)
 
 
-    def set_state(self, state: State | str) -> None:
-        val = state.value if hasattr(state, "value") else str(state)
-        self.current_state = val
+    def set_state(self, state: State) -> None:
+        self.current_state = state
         try:
-            self._window.evaluate_js(f"setState('{val}')")
+            self._window.evaluate_js(f"setState('{state}')")
         except Exception:
             pass
 

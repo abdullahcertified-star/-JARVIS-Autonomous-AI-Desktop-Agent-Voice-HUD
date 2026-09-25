@@ -27,10 +27,7 @@ Commands can be spoken out loud via the floating **holographic Next.js/Three.js 
 - **Natural Language Intent Mapping**: Converts conversational requests (*"what's my IP"*, *"find port 5000"*, *"create folder Projects on desktop"*) into validated Windows CLI and PowerShell commands with dynamic parameter binding.
 - **Natural Language Result Interpretation**: Formats raw technical `stdout`/`stderr` into concise, humanized spoken responses.
 - **Cinematic Marvel-Style Audio (SFX)**: Zero-latency in-memory futuristic audio cues for wake word detection, speech-end acknowledgment, action success/failure tones, standby sleep, and system shutdown.
-- **Real-Time Voice Interruption (Barge-In)**: True ChatGPT Voice-style barge-in engine. When Jarvis is speaking, the microphone and neural Silero VAD remain active concurrently. Speaking cuts off audio playback in <64ms, cancels active TTS tasks, and immediately captures the new utterance without losing speech.
-- **Acoustic Echo Shielding & Self-Interruption Prevention**: Uses dual-threshold neural VAD gating, dynamic speaker-bleed floor tracking, and debounce protection so Jarvis's speaker output never triggers self-interruptions.
-- **Thread-Safe State Machine & Generation Tracking**: Coordinates explicit states (`IDLE`, `LISTENING`, `THINKING`, `SPEAKING`, `INTERRUPTED`) with atomic generation tokens ensuring obsolete responses are discarded immediately and the latest user speech always has priority.
-- **Multilingual & Mixed-Speech STT**: Whisper speech-to-text enhanced for English, Urdu, Roman Urdu, and mixed code-switching speech.
+- **Real-Time Voice Interruption (Barge-In)**: Background microphone energy monitor during TTS playback. If the user speaks while Jarvis is talking, audio cuts off within 50ms and Jarvis seamlessly returns to recording.
 - **Proactive Desktop Background Watcher**: Autonomous daemon monitoring system vitals (RAM >90%, disk depletion <10GB, sustained CPU spikes, critical battery) and speaking proactive advisory alerts with intelligent cooldown debouncing.
 - **Holographic 3D Voice HUD**: Floating Next.js + Three.js particle sphere reacting to wake words, voice amplitude, and listening states with continuous conversation sessions.
 - **Graceful Self-Termination**: Understands natural shutdown commands (*"Jarvis terminate yourself"*, *"shutdown jarvis"*, *"goodbye"*, *"stand down"*), closing the HUD and stopping all background audio loops cleanly.
@@ -151,10 +148,12 @@ JARVIS includes a floating desktop HUD featuring a Next.js/Three.js interactive 
 - **Wake Word**: Offline detection of *"Hey Jarvis"* via `openWakeWord`.
 - **Speech Recognition**: Local Whisper transcription (`faster-whisper`) with automated speech-to-text phonetic repair.
 - **Speech Synthesis**: Ultra-natural Edge Neural TTS / Gemini TTS with natural humanized punctuation pauses.
+- **Real-Time Voice Barge-In**: Background microphone monitor during playback; speaking immediately cuts off audio playback within 50ms and transitions directly to recording.
 - **Continuous Conversation**: Stays awake for 45 seconds after wake-up so you don't have to repeat *"Hey Jarvis"* for follow-up queries.
 - **Voice Control & Standby**:
   - Say *"go to sleep"*, *"stand by"*, *"dismissed"*, or *"goodbye"* to enter standby mode.
   - Say *"Jarvis terminate yourself"*, *"shutdown jarvis"*, or *"exit"* to close the application and stop all background processes cleanly.
+
 
 ### Multimodal Screen Perception & Vision QA (Gemini VLM)
 - **Visual Desktop QA**: Ask *"Jarvis, what is on my screen?"*, *"Describe my screen"*, or *"What do you see?"* for an instant, natural summary of active windows and visual content.
@@ -199,7 +198,7 @@ scanner/                Windows filesystem, Start Menu, Registry, and Store app 
 search/                 RapidFuzz indexing over installed applications
 voice/                  Voice client: wake word listener, Whisper STT, TTS, and pywebview HUD
   web/                  Next.js 15 + Three.js holographic particle orb application
-tests/                  Pytest suite (146 automated unit and integration tests)
+tests/                  Pytest suite (137 automated unit and integration tests)
 ```
 
 ---
@@ -214,7 +213,7 @@ Run the full automated test suite (including command database, safety blocks, ag
 ```
 
 ```text
-======================= 146 passed, 1 warning in 22.12s =======================
+======================= 137 passed, 1 warning in 23.06s =======================
 ```
 
 ---

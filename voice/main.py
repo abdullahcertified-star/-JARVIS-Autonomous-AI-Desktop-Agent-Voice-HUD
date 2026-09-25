@@ -37,7 +37,6 @@ from voice.pipeline import (
     send_to_jarvis,
 )
 from voice.sfx import get_sfx
-from voice.state import ConversationState, StateManager
 from voice.ui import JarvisWindow
 from voice.watcher import SystemAlert, SystemWatcher
 
@@ -48,21 +47,12 @@ def _speak_with_barge_in(
     text: str,
     window: JarvisWindow,
     speaker: Speaker,
-    cancel_event: Optional[threading.Event] = None,
-) -> tuple[bool, Optional[np.ndarray]]:
+) -> bool:
     """Speaks the response while monitoring for user barge-in interruptions.
-    Returns (interrupted: bool, captured_audio: Optional[np.ndarray]).
+    Returns True if user interrupted playback, False otherwise.
     """
     interrupt_event = threading.Event()
-    if cancel_event is not None and cancel_event.is_set():
-        return True, None
-
-    def _on_interrupt() -> None:
-        interrupt_event.set()
-        if cancel_event is not None:
-            cancel_event.set()
-
-    barge_in = BargeInMonitor(interrupt_event=interrupt_event, on_interrupt=_on_interrupt)
+    barge_in = BargeInMonitor(interrupt_event)
     window.set_state("speaking")
     interrupted = False
     try:
@@ -70,32 +60,20 @@ def _speak_with_barge_in(
             interrupted = speaker.say(text, interrupt_event=interrupt_event)
     except Exception as exc:
         print(f"(playback error: {exc})")
-    return (interrupted or barge_in.interrupted), barge_in.captured_audio
+    return interrupted
 
 
-def _process_and_reply(
-    text: str,
-    window: JarvisWindow,
-    speaker: Speaker,
-    transcriber: Transcriber,
-    stop_event: threading.Event,
-    state_manager: StateManager,
-) -> Optional[np.ndarray]:
+def _process_and_reply(text: str, window: JarvisWindow, speaker: Speaker) -> bool:
     """Dispatches a recognized command to Jarvis, enforces the Positive/Negative protocol,
     plays cinematic SFX, and speaks the reply out loud with barge-in support.
-    Returns captured_audio if interrupted by user voice, None otherwise."""
-    gen_id, cancel_event = state_manager.new_generation()
+    Returns True if interrupted by user voice, False otherwise."""
     sfx = get_sfx()
     clean_token = re.sub(r'[^a-z]', '', text.lower())
     if clean_token in ("heyjarvis", "jarvis", "hellojarvis", "heythere", "wakeup", "wakeupjarvis", "jarviswakeup", "areyouthere", "areyouawake", "online"):
         reply = "At your service, Sir Abdullah. How may I assist you?"
     else:
         try:
-            state_manager.transition_to(ConversationState.THINKING)
             raw_reply = send_to_jarvis(text)
-            if state_manager.is_generation_cancelled(gen_id):
-                print(f"[Generation {gen_id}] Discarded: newer input or interruption active.")
-                return None
             reply = enforce_status_prefix(raw_reply)
         except Exception as exc:  # noqa: BLE001
             print(f"(error talking to Jarvis: {exc})")
@@ -103,14 +81,9 @@ def _process_and_reply(
             window.set_state("error")
             error_msg = "Negative sir, I couldn't reach the agent just now."
             window.add_message("jarvis", error_msg, "negative")
-            state_manager.transition_to(ConversationState.SPEAKING)
-            _interrupted, captured = _speak_with_barge_in(error_msg, window, speaker, cancel_event=cancel_event)
-            state_manager.transition_to(ConversationState.LISTENING)
-            return captured
-
-    if state_manager.is_generation_cancelled(gen_id):
-        print(f"[Generation {gen_id}] Cancelled before speech output.")
-        return None
+            _speak_with_barge_in(error_msg, window, speaker)
+            window.set_state("listening")
+            return False
 
     clean_reply = (reply or "").strip()
     tone = classify_reply(clean_reply)
@@ -126,20 +99,16 @@ def _process_and_reply(
     print(f"Jarvis: {spoken_reply}")
     window.add_message("jarvis", spoken_reply, tone)
 
-    state_manager.transition_to(ConversationState.SPEAKING)
-    interrupted, captured_audio = _speak_with_barge_in(spoken_reply, window, speaker, cancel_event=cancel_event)
+    interrupted = _speak_with_barge_in(spoken_reply, window, speaker)
     if interrupted:
-        print("\n[Barge-in] Interrupted by user voice -> immediately prioritizing new speech.")
-        state_manager.cancel_generation(gen_id)
-        state_manager.transition_to(ConversationState.INTERRUPTED)
+        print("\n[Barge-in] Interrupted by user voice -> immediately listening.")
         sfx.play_wake()
-        return captured_audio
     else:
         # Small cooldown so speaker echo does not re-trigger mic input
-        time.sleep(0.15)
-        state_manager.transition_to(ConversationState.LISTENING)
-        return None
+        time.sleep(0.3)
 
+    window.set_state("listening")
+    return interrupted
 
 
 def _is_terminate_command(text: str) -> bool:
@@ -184,7 +153,6 @@ def _handle_voice_meta_command(
     window: JarvisWindow,
     speaker: Speaker,
     stop_event: threading.Event,
-    state_manager: Optional[StateManager] = None,
 ) -> bool:
     """Handles meta conversation commands like termination or standby/sleep.
     Returns True if handled (loop should break or exit), False otherwise."""
@@ -197,10 +165,7 @@ def _handle_voice_meta_command(
         farewell = "Positive sir, terminating all processes and shutting down. Goodbye, Sir Abdullah."
         print(f"Jarvis: {farewell}")
         window.add_message("jarvis", farewell, "positive")
-        if state_manager:
-            state_manager.transition_to(ConversationState.SPEAKING)
-        else:
-            window.set_state("speaking")
+        window.set_state("speaking")
         try:
             speaker.say(farewell)
         except Exception:
@@ -221,73 +186,20 @@ def _handle_voice_meta_command(
         standby_msg = "Standing by, Sir Abdullah."
         print(f"Jarvis: {standby_msg}")
         window.add_message("jarvis", standby_msg, "positive")
-        if state_manager:
-            state_manager.transition_to(ConversationState.SPEAKING)
         _speak_with_barge_in(standby_msg, window, speaker)
-        if state_manager:
-            state_manager.transition_to(ConversationState.IDLE)
-        else:
-            window.set_state("idle")
+        window.set_state("idle")
         return True
 
     return False
 
-
-def _handle_turn(
-    user_text: str,
-    window: JarvisWindow,
-    speaker: Speaker,
-    transcriber: Transcriber,
-    stop_event: threading.Event,
-    state_manager: StateManager,
-) -> bool:
-    """Processes a user input text and immediately loops through any barge-in interruptions.
-    Returns True if conversation should return to standby (e.g. meta command requested sleep), False to continue listening.
-    """
-    sfx = get_sfx()
-    current_text = user_text
-    while current_text and not stop_event.is_set():
-        print(f"You: {current_text}")
-        window.add_message("you", current_text)
-
-        if _handle_voice_confirmation(current_text, window):
-            return False
-
-        if _handle_voice_meta_command(current_text, window, speaker, stop_event, state_manager):
-            return True
-
-        captured_audio = _process_and_reply(
-            current_text,
-            window,
-            speaker,
-            transcriber,
-            stop_event,
-            state_manager,
-        )
-
-        if captured_audio is None or stop_event.is_set():
-            return False
-
-        # Interrupted! Immediately transcribe the captured speech and repeat turn loop with priority
-        state_manager.transition_to(ConversationState.THINKING)
-        sfx.play_listening_end()
-        current_text = transcriber.transcribe(captured_audio)
-        if not current_text:
-            print("(interruption speech could not be recognized)")
-            state_manager.transition_to(ConversationState.LISTENING)
-            return False
-        print(f"[Barge-In Input] Detected: {current_text}")
-
-    return False
 
 
 def _voice_loop(window: JarvisWindow, stop_event: threading.Event) -> None:
     wake_word = None
     watcher = None
     sfx = get_sfx()
-    state_manager = StateManager(on_change=lambda st: window.set_state(st.value))
     try:
-        state_manager.transition_to(ConversationState.THINKING)
+        window.set_state("thinking")
         print("Loading speech recognition model (first run downloads it)...")
         transcriber = Transcriber()
         speaker = Speaker()
@@ -305,30 +217,28 @@ def _voice_loop(window: JarvisWindow, stop_event: threading.Event) -> None:
             print(f"\n[Proactive Alert] {alert.title}: {alert.message}")
             sfx.play_negative()
             window.add_message("jarvis", alert.spoken_text, "negative")
-            if state_manager.current in (ConversationState.IDLE, ConversationState.LISTENING):
-                state_manager.transition_to(ConversationState.SPEAKING)
+            if getattr(window, "current_state", "idle") in ("idle", "listening"):
                 _speak_with_barge_in(alert.spoken_text, window, speaker)
-                state_manager.transition_to(ConversationState.IDLE)
+                window.set_state("idle")
 
         watcher = SystemWatcher(on_alert=_on_system_alert).start()
 
         print('Ready. Say "Hey Jarvis" to talk to Jarvis. Close the orb window to quit.')
         sfx.play_positive()
         window.add_message("jarvis", _GREETING)
-        state_manager.transition_to(ConversationState.SPEAKING)
         _speak_with_barge_in(_GREETING, window, speaker)
-        state_manager.transition_to(ConversationState.IDLE)
+        window.set_state("idle")
 
         while True:
             # 1. STANDBY: Wait for wake word "Hey Jarvis"
             print('\n[Standby] Waiting for wake word "Hey Jarvis"...')
-            state_manager.transition_to(ConversationState.IDLE)
+            window.set_state("idle")
             wake_word.listen()
             sfx.play_wake()
             print('\n[Awake] "Hey Jarvis" detected! Entering active conversation mode...')
 
             # 2. Check if user already spoke a command right after "Hey Jarvis"
-            state_manager.transition_to(ConversationState.LISTENING)
+            window.set_state("listening")
             audio = record_until_silence(
                 on_level=window.set_level,
                 stop_event=stop_event,
@@ -341,37 +251,33 @@ def _voice_loop(window: JarvisWindow, stop_event: threading.Event) -> None:
                 wake_greeting = "At your service, Sir Abdullah. How may I assist you?"
                 print(f"Jarvis: {wake_greeting}")
                 window.add_message("jarvis", wake_greeting, "positive")
-                state_manager.transition_to(ConversationState.SPEAKING)
-                interrupted, captured = _speak_with_barge_in(wake_greeting, window, speaker)
-                if interrupted and captured is not None:
-                    state_manager.transition_to(ConversationState.THINKING)
-                    sfx.play_listening_end()
-                    text = transcriber.transcribe(captured)
-                    if text:
-                        if _handle_turn(text, window, speaker, transcriber, stop_event, state_manager):
-                            continue
-                state_manager.transition_to(ConversationState.LISTENING)
+                _speak_with_barge_in(wake_greeting, window, speaker)
+                window.set_state("listening")
             else:
                 sfx.play_listening_end()
-                state_manager.transition_to(ConversationState.THINKING)
+                window.set_state("thinking")
                 text = transcriber.transcribe(audio)
                 if not text:
                     wake_greeting = "At your service, Sir Abdullah. How may I assist you?"
                     print(f"Jarvis: {wake_greeting}")
                     window.add_message("jarvis", wake_greeting, "positive")
-                    state_manager.transition_to(ConversationState.SPEAKING)
                     _speak_with_barge_in(wake_greeting, window, speaker)
-                    state_manager.transition_to(ConversationState.LISTENING)
+                    window.set_state("listening")
                 else:
-                    if _handle_turn(text, window, speaker, transcriber, stop_event, state_manager):
+                    print(f"You: {text}")
+                    window.add_message("you", text)
+                    if _handle_voice_confirmation(text, window):
                         continue
+                    if _handle_voice_meta_command(text, window, speaker, stop_event):
+                        continue
+                    _process_and_reply(text, window, speaker)
 
             # 3. CONTINUOUS ACTIVE CONVERSATION SESSION (stays awake for 45s)
             while True:
                 if stop_event is not None and stop_event.is_set():
                     raise StopRequested
 
-                state_manager.transition_to(ConversationState.LISTENING)
+                window.set_state("listening")
                 print(f"\n[Active Conversation] Listening for follow-up command (standby timeout: {config.CONVERSATION_TIMEOUT_SEC:.0f}s)...")
 
                 audio = record_until_silence(
@@ -388,22 +294,30 @@ def _voice_loop(window: JarvisWindow, stop_event: threading.Event) -> None:
                     print(f"\n[Timeout] No speech for {config.CONVERSATION_TIMEOUT_SEC:.0f}s. Returning to standby.")
                     print(f"Jarvis: {standby_msg}")
                     window.add_message("jarvis", standby_msg, "positive")
-                    state_manager.transition_to(ConversationState.SPEAKING)
                     _speak_with_barge_in(standby_msg, window, speaker)
-                    state_manager.transition_to(ConversationState.IDLE)
+                    window.set_state("idle")
                     break  # Break inner loop back to wake_word.listen()!
 
                 sfx.play_listening_end()
-                state_manager.transition_to(ConversationState.THINKING)
+                window.set_state("thinking")
                 text = transcriber.transcribe(audio)
                 if not text:
                     print("(could not make out words, continuing to listen...)")
                     continue
 
-                # Process the command with barge-in support
-                should_sleep = _handle_turn(text, window, speaker, transcriber, stop_event, state_manager)
-                if should_sleep:
+                print(f"You: {text}")
+                window.add_message("you", text)
+
+                # Check for active confirmation responses
+                if _handle_voice_confirmation(text, window):
+                    continue
+
+                # Check for termination or sleep commands
+                if _handle_voice_meta_command(text, window, speaker, stop_event):
                     break
+
+                # Process the command
+                _process_and_reply(text, window, speaker)
 
     except StopRequested:
         print("\nOrb closed -- stopping.")

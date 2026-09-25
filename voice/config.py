@@ -85,16 +85,4 @@ WATCHER_DISK_MIN_GB: float = float(os.getenv("JARVIS_WATCHER_DISK_MIN_GB", "10.0
 WATCHER_CPU_THRESHOLD_PERCENT: float = float(os.getenv("JARVIS_WATCHER_CPU_THRESHOLD_PERCENT", "95.0"))
 WATCHER_BATTERY_MIN_PERCENT: float = float(os.getenv("JARVIS_WATCHER_BATTERY_MIN_PERCENT", "15.0"))
 
-# Silero VAD (Voice Activity Detection) configuration
-VAD_ENABLED: bool = os.getenv("JARVIS_VAD_ENABLED", "true").lower() in ("true", "1", "yes")
-VAD_LISTENING_THRESHOLD: float = float(os.getenv("JARVIS_VAD_LISTENING_THRESHOLD", "0.50"))
-VAD_BARGE_IN_THRESHOLD: float = float(os.getenv("JARVIS_VAD_BARGE_IN_THRESHOLD", "0.75"))
-VAD_BARGE_IN_MIN_RMS: float = float(os.getenv("JARVIS_VAD_BARGE_IN_MIN_RMS", "350.0"))
-VAD_SILENCE_DURATION_SEC: float = float(os.getenv("JARVIS_VAD_SILENCE_DURATION", "1.2"))
-VAD_PRE_ROLL_SEC: float = float(os.getenv("JARVIS_VAD_PRE_ROLL_SEC", "0.5"))
-
-# Multilingual Speech Recognition (English, Urdu, Roman Urdu, Mixed)
-WHISPER_LANGUAGE: str = os.getenv("JARVIS_WHISPER_LANGUAGE", "")  # empty = auto-detect
-
-
 
