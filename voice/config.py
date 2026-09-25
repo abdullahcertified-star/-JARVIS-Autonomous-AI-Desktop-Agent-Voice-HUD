@@ -70,6 +70,9 @@ CONVERSATION_TIMEOUT_SEC: float = float(os.getenv("JARVIS_CONVERSATION_TIMEOUT",
 # Cinematic Sound Effects (Marvel HUD audio cues)
 SFX_ENABLED: bool = os.getenv("JARVIS_SFX_ENABLED", "true").lower() in ("true", "1", "yes")
 SFX_VOLUME: float = float(os.getenv("JARVIS_SFX_VOLUME", "0.45"))
+SFX_SPEECH_END_ENABLED: bool = os.getenv("JARVIS_SFX_SPEECH_END_ENABLED", "false").lower() in ("true", "1", "yes")
+SFX_REPLY_ENABLED: bool = os.getenv("JARVIS_SFX_REPLY_ENABLED", "false").lower() in ("true", "1", "yes")
+
 
 # Voice Interruption & Barge-in (instant speech cutoff when user speaks)
 BARGE_IN_ENABLED: bool = os.getenv("JARVIS_BARGE_IN_ENABLED", "true").lower() in ("true", "1", "yes")

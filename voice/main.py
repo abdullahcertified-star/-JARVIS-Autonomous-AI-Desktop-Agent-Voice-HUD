@@ -77,7 +77,8 @@ def _process_and_reply(text: str, window: JarvisWindow, speaker: Speaker) -> boo
             reply = enforce_status_prefix(raw_reply)
         except Exception as exc:  # noqa: BLE001
             print(f"(error talking to Jarvis: {exc})")
-            sfx.play_negative()
+            if getattr(config, "SFX_REPLY_ENABLED", False):
+                sfx.play_negative()
             window.set_state("error")
             error_msg = "Negative sir, I couldn't reach the agent just now."
             window.add_message("jarvis", error_msg, "negative")
@@ -89,11 +90,13 @@ def _process_and_reply(text: str, window: JarvisWindow, speaker: Speaker) -> boo
     tone = classify_reply(clean_reply)
     spoken_reply = clean_reply if clean_reply else ("Positive sir." if tone == "positive" else "Negative sir.")
 
-    # Play subtle futuristic feedback tone matching response sentiment
-    if tone == "positive":
-        sfx.play_positive()
-    else:
-        sfx.play_negative()
+    # Play subtle futuristic feedback tone matching response sentiment if explicitly enabled
+    if getattr(config, "SFX_REPLY_ENABLED", False):
+        if tone == "positive":
+            sfx.play_positive()
+        else:
+            sfx.play_negative()
+
 
     # Immediately show the reply on CLI and in the UI log -- zero visual latency
     print(f"Jarvis: {spoken_reply}")
@@ -224,7 +227,8 @@ def _voice_loop(window: JarvisWindow, stop_event: threading.Event) -> None:
         watcher = SystemWatcher(on_alert=_on_system_alert).start()
 
         print('Ready. Say "Hey Jarvis" to talk to Jarvis. Close the orb window to quit.')
-        sfx.play_positive()
+        if getattr(config, "SFX_REPLY_ENABLED", False):
+            sfx.play_positive()
         window.add_message("jarvis", _GREETING)
         _speak_with_barge_in(_GREETING, window, speaker)
         window.set_state("idle")
@@ -254,8 +258,10 @@ def _voice_loop(window: JarvisWindow, stop_event: threading.Event) -> None:
                 _speak_with_barge_in(wake_greeting, window, speaker)
                 window.set_state("listening")
             else:
-                sfx.play_listening_end()
+                if getattr(config, "SFX_SPEECH_END_ENABLED", False):
+                    sfx.play_listening_end()
                 window.set_state("thinking")
+
                 text = transcriber.transcribe(audio)
                 if not text:
                     wake_greeting = "At your service, Sir Abdullah. How may I assist you?"
@@ -298,8 +304,10 @@ def _voice_loop(window: JarvisWindow, stop_event: threading.Event) -> None:
                     window.set_state("idle")
                     break  # Break inner loop back to wake_word.listen()!
 
-                sfx.play_listening_end()
+                if getattr(config, "SFX_SPEECH_END_ENABLED", False):
+                    sfx.play_listening_end()
                 window.set_state("thinking")
+
                 text = transcriber.transcribe(audio)
                 if not text:
                     print("(could not make out words, continuing to listen...)")
