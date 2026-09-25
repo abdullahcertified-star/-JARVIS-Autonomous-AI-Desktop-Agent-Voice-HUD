@@ -176,7 +176,8 @@ class Transcriber:
         "Hey Jarvis, Sir Abdullah. Open drive C, drive D, drive E, drive F, drive G, C:, D:, E:, F:, "
         "File Explorer, Local Disk C, Local Disk D, Local Disk E, Local Disk F, Windows folders, desktop, files, "
         "What is IPv4, IPv6, cicada, cicadas, insect, biology, science, IP address, "
-        "Windows desktop automation, applications, Ethernet, Wi-Fi, volume, Chrome, YouTube, France, Paris."
+        "Windows desktop automation, applications, Ethernet, Wi-Fi, volume, Chrome, YouTube, France, Paris, "
+        "Mujhe batao, kya haal hai, explain karo, Python code, Roman Urdu, Urdu, stop, wait, pause, resume, cancel."
     )
 
     def __init__(self) -> None:
@@ -219,12 +220,18 @@ class Transcriber:
         if 0.005 < peak < 0.70:
             audio = audio * (0.85 / peak)
 
+        # Determine target language: None = auto-detect (supports English, Urdu, Roman Urdu, mixed)
+        target_lang = getattr(config, "WHISPER_LANGUAGE", "")
+        lang_arg = target_lang if target_lang else None
+        if getattr(config, "WHISPER_MODEL_SIZE", "").endswith(".en"):
+            lang_arg = "en"
+
         # 1. Try Whisper if successfully initialized
         if self._whisper is not None:
             try:
                 segments, _info = self._whisper.transcribe(
                     audio,
-                    language="en",
+                    language=lang_arg,
                     initial_prompt=self._PROMPT,
                     beam_size=5,
                     temperature=0.0,
@@ -232,7 +239,7 @@ class Transcriber:
                     compression_ratio_threshold=2.4,
                     no_speech_threshold=0.6,
                     vad_filter=True,
-                    vad_parameters=dict(min_silence_duration_ms=400, speech_pad_ms=200),
+                    vad_parameters=dict(min_silence_duration_ms=300, speech_pad_ms=200),
                 )
                 raw_text = " ".join(segment.text.strip() for segment in segments).strip()
                 if raw_text:
@@ -240,6 +247,7 @@ class Transcriber:
             except Exception as exc:
                 print(f"[Transcriber] Whisper runtime error ({exc}); switching to SpeechRecognition...")
                 self._whisper = None  # Don't hit mkl_malloc repeatedly
+
 
         # 2. Use SpeechRecognition (Google STT)
         try:
@@ -404,6 +412,13 @@ class Speaker:
             except Exception:
                 self._client = None
 
+    def interrupt(self) -> None:
+        """Immediately aborts any active audio playback."""
+        try:
+            sd.stop()
+        except Exception:
+            pass
+
     def _play_audio_stream(
         self,
         audio: np.ndarray,
@@ -411,9 +426,13 @@ class Speaker:
         interrupt_event: Optional[threading.Event] = None,
         on_start: Optional[Callable[[], None]] = None,
     ) -> bool:
-        """Plays audio with low-latency interruption support.
+        """Plays audio with low-latency interruption support (<20ms).
         Returns True if interrupted, False if completed normally.
         """
+        if interrupt_event is not None and interrupt_event.is_set():
+            self.interrupt()
+            return True
+
         if on_start:
             try:
                 on_start()
@@ -427,12 +446,9 @@ class Speaker:
 
             while (time.time() - start_t) < duration:
                 if interrupt_event is not None and interrupt_event.is_set():
-                    try:
-                        sd.stop()
-                    except Exception:
-                        pass
+                    self.interrupt()
                     return True
-                time.sleep(0.03)
+                time.sleep(0.02)
 
             try:
                 sd.wait()
@@ -458,27 +474,47 @@ class Speaker:
             pitch = getattr(config, "EDGE_PITCH", "-4Hz")
             rate = getattr(config, "EDGE_RATE", "-2%")
 
-            async def _download_audio(content: str) -> bytes:
-                comm = edge_tts.Communicate(content, voice, pitch=pitch, rate=rate)
-                audio_bytes = b""
-                async for chunk in comm.stream():
-                    if chunk["type"] == "audio":
-                        audio_bytes += chunk["data"]
-                return audio_bytes
+            sentences = split_sentences(clean_text)
+            if not sentences:
+                sentences = [clean_text]
 
-            data = asyncio.run(_download_audio(clean_text))
-            if not data:
-                return False
+            for s_idx, sentence in enumerate(sentences):
+                if interrupt_event is not None and interrupt_event.is_set():
+                    self.interrupt()
+                    return True
 
-            buf = io.BytesIO(data)
-            audio, samplerate = sf.read(buf, dtype="float32")
+                async def _download_audio(content: str) -> bytes:
+                    comm = edge_tts.Communicate(content, voice, pitch=pitch, rate=rate)
+                    audio_bytes = b""
+                    async for chunk in comm.stream():
+                        if interrupt_event is not None and interrupt_event.is_set():
+                            break
+                        if chunk["type"] == "audio":
+                            audio_bytes += chunk["data"]
+                    return audio_bytes
 
-            return self._play_audio_stream(
-                audio,
-                samplerate=samplerate,
-                interrupt_event=interrupt_event,
-                on_start=on_start,
-            )
+                data = asyncio.run(_download_audio(sentence))
+                if interrupt_event is not None and interrupt_event.is_set():
+                    self.interrupt()
+                    return True
+
+                if not data:
+                    continue
+
+                buf = io.BytesIO(data)
+                audio, samplerate = sf.read(buf, dtype="float32")
+
+                start_callback = on_start if s_idx == 0 else None
+                interrupted = self._play_audio_stream(
+                    audio,
+                    samplerate=samplerate,
+                    interrupt_event=interrupt_event,
+                    on_start=start_callback,
+                )
+                if interrupted:
+                    return True
+
+            return False
         except Exception as exc:
             print(f"(Edge TTS audio error: {exc})")
             return False
