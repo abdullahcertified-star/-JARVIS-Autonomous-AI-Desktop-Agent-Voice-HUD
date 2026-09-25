@@ -285,6 +285,7 @@ class JarvisWindow:
         _active_window_instance = self
         self._pending_confirmations: dict[str, dict] = {}
         self._confirmation_lock = threading.Lock()
+        self.current_state: State = "booting"
 
         api = _Api(self._window, self.muted, self)
         self._window.expose(
@@ -408,6 +409,7 @@ class JarvisWindow:
 
 
     def set_state(self, state: State) -> None:
+        self.current_state = state
         try:
             self._window.evaluate_js(f"setState('{state}')")
         except Exception:

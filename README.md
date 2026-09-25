@@ -28,6 +28,7 @@ Commands can be spoken out loud via the floating **holographic Next.js/Three.js 
 - **Natural Language Result Interpretation**: Formats raw technical `stdout`/`stderr` into concise, humanized spoken responses.
 - **Cinematic Marvel-Style Audio (SFX)**: Zero-latency in-memory futuristic audio cues for wake word detection, speech-end acknowledgment, action success/failure tones, standby sleep, and system shutdown.
 - **Real-Time Voice Interruption (Barge-In)**: Background microphone energy monitor during TTS playback. If the user speaks while Jarvis is talking, audio cuts off within 50ms and Jarvis seamlessly returns to recording.
+- **Proactive Desktop Background Watcher**: Autonomous daemon monitoring system vitals (RAM >90%, disk depletion <10GB, sustained CPU spikes, critical battery) and speaking proactive advisory alerts with intelligent cooldown debouncing.
 - **Holographic 3D Voice HUD**: Floating Next.js + Three.js particle sphere reacting to wake words, voice amplitude, and listening states with continuous conversation sessions.
 - **Graceful Self-Termination**: Understands natural shutdown commands (*"Jarvis terminate yourself"*, *"shutdown jarvis"*, *"goodbye"*, *"stand down"*), closing the HUD and stopping all background audio loops cleanly.
 - **Rich Training Dataset**: Includes **24,110 natural-language training pairs** in `database/jarvis_command_dataset.jsonl` for offline fine-tuning or evaluation.

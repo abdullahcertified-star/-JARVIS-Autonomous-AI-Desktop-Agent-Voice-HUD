@@ -76,3 +76,13 @@ BARGE_IN_ENABLED: bool = os.getenv("JARVIS_BARGE_IN_ENABLED", "true").lower() in
 BARGE_IN_ENERGY_RATIO: float = float(os.getenv("JARVIS_BARGE_IN_ENERGY_RATIO", "3.0"))
 BARGE_IN_GRACE_PERIOD_SEC: float = float(os.getenv("JARVIS_BARGE_IN_GRACE_PERIOD", "0.25"))
 
+# Proactive Desktop Background Watcher
+WATCHER_ENABLED: bool = os.getenv("JARVIS_WATCHER_ENABLED", "true").lower() in ("true", "1", "yes")
+WATCHER_CHECK_INTERVAL_SEC: float = float(os.getenv("JARVIS_WATCHER_CHECK_INTERVAL_SEC", "30.0"))
+WATCHER_COOLDOWN_SEC: float = float(os.getenv("JARVIS_WATCHER_COOLDOWN_SEC", "300.0"))  # 5 minutes
+WATCHER_RAM_THRESHOLD_PERCENT: float = float(os.getenv("JARVIS_WATCHER_RAM_THRESHOLD_PERCENT", "90.0"))
+WATCHER_DISK_MIN_GB: float = float(os.getenv("JARVIS_WATCHER_DISK_MIN_GB", "10.0"))
+WATCHER_CPU_THRESHOLD_PERCENT: float = float(os.getenv("JARVIS_WATCHER_CPU_THRESHOLD_PERCENT", "95.0"))
+WATCHER_BATTERY_MIN_PERCENT: float = float(os.getenv("JARVIS_WATCHER_BATTERY_MIN_PERCENT", "15.0"))
+
+

@@ -38,6 +38,7 @@ from voice.pipeline import (
 )
 from voice.sfx import get_sfx
 from voice.ui import JarvisWindow
+from voice.watcher import SystemAlert, SystemWatcher
 
 _GREETING = "At your service, Sir Abdullah."
 
@@ -195,6 +196,7 @@ def _handle_voice_meta_command(
 
 def _voice_loop(window: JarvisWindow, stop_event: threading.Event) -> None:
     wake_word = None
+    watcher = None
     sfx = get_sfx()
     try:
         window.set_state("thinking")
@@ -209,6 +211,17 @@ def _voice_loop(window: JarvisWindow, stop_event: threading.Event) -> None:
 
         print("Calibrating microphone for ambient background noise...")
         adjust_for_ambient_noise(duration=1.0)
+
+        # Proactive System Watcher: alerts on high RAM, disk depletion, CPU overload
+        def _on_system_alert(alert: SystemAlert) -> None:
+            print(f"\n[Proactive Alert] {alert.title}: {alert.message}")
+            sfx.play_negative()
+            window.add_message("jarvis", alert.spoken_text, "negative")
+            if getattr(window, "current_state", "idle") in ("idle", "listening"):
+                _speak_with_barge_in(alert.spoken_text, window, speaker)
+                window.set_state("idle")
+
+        watcher = SystemWatcher(on_alert=_on_system_alert).start()
 
         print('Ready. Say "Hey Jarvis" to talk to Jarvis. Close the orb window to quit.')
         sfx.play_positive()
@@ -311,6 +324,8 @@ def _voice_loop(window: JarvisWindow, stop_event: threading.Event) -> None:
     except Exception as exc:
         print(f"\n[Voice Engine] Unexpected error: {exc}")
     finally:
+        if watcher is not None:
+            watcher.stop()
         if wake_word is not None:
             wake_word.close()
 
