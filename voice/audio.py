@@ -278,6 +278,18 @@ def adjust_for_ambient_noise(duration: float = 1.0) -> float:
     return calibrated
 
 
+def get_ambient_threshold() -> float:
+    """Returns the calibrated ambient noise threshold, falling back to default config if uncalibrated."""
+    global _ambient_noise_threshold
+    return _ambient_noise_threshold or config.SILENCE_RMS_THRESHOLD
+
+
+# Public aliases for barge-in audio capture
+open_input_stream = _open_input_stream
+calc_rms = _rms
+
+
+
 def record_until_silence(
     on_level: Callable[[float], None] | None = None,
     stop_event: threading.Event | None = None,

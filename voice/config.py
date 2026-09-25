@@ -66,3 +66,13 @@ AMBIENT_CALIBRATE_SEC: float = float(os.getenv("JARVIS_AMBIENT_CALIBRATE_SEC", "
 
 # Continuous conversation mode: how long Jarvis stays awake waiting for follow-up commands before returning to sleep (45 seconds)
 CONVERSATION_TIMEOUT_SEC: float = float(os.getenv("JARVIS_CONVERSATION_TIMEOUT", "45.0"))
+
+# Cinematic Sound Effects (Marvel HUD audio cues)
+SFX_ENABLED: bool = os.getenv("JARVIS_SFX_ENABLED", "true").lower() in ("true", "1", "yes")
+SFX_VOLUME: float = float(os.getenv("JARVIS_SFX_VOLUME", "0.45"))
+
+# Voice Interruption & Barge-in (instant speech cutoff when user speaks)
+BARGE_IN_ENABLED: bool = os.getenv("JARVIS_BARGE_IN_ENABLED", "true").lower() in ("true", "1", "yes")
+BARGE_IN_ENERGY_RATIO: float = float(os.getenv("JARVIS_BARGE_IN_ENERGY_RATIO", "3.0"))
+BARGE_IN_GRACE_PERIOD_SEC: float = float(os.getenv("JARVIS_BARGE_IN_GRACE_PERIOD", "0.25"))
+

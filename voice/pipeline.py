@@ -7,8 +7,9 @@ import io
 import queue
 import re
 import threading
+import time
 import wave
-from typing import Callable, Literal
+from typing import Callable, Literal, Optional
 
 import numpy as np
 import sounddevice as sd
@@ -403,11 +404,55 @@ class Speaker:
             except Exception:
                 self._client = None
 
-    def _say_edge_tts(self, text: str, on_start: Callable[[], None] | None = None) -> None:
+    def _play_audio_stream(
+        self,
+        audio: np.ndarray,
+        samplerate: int,
+        interrupt_event: Optional[threading.Event] = None,
+        on_start: Optional[Callable[[], None]] = None,
+    ) -> bool:
+        """Plays audio with low-latency interruption support.
+        Returns True if interrupted, False if completed normally.
+        """
+        if on_start:
+            try:
+                on_start()
+            except Exception:
+                pass
+
+        try:
+            sd.play(audio, samplerate=samplerate)
+            duration = len(audio) / float(samplerate)
+            start_t = time.time()
+
+            while (time.time() - start_t) < duration:
+                if interrupt_event is not None and interrupt_event.is_set():
+                    try:
+                        sd.stop()
+                    except Exception:
+                        pass
+                    return True
+                time.sleep(0.03)
+
+            try:
+                sd.wait()
+            except Exception:
+                pass
+            return False
+        except Exception as exc:
+            print(f"(playback error: {exc})")
+            return False
+
+    def _say_edge_tts(
+        self,
+        text: str,
+        on_start: Callable[[], None] | None = None,
+        interrupt_event: Optional[threading.Event] = None,
+    ) -> bool:
         try:
             clean_text = clean_markdown_for_speech(text)
             if not clean_text:
-                return
+                return False
 
             voice = getattr(config, "EDGE_VOICE", "en-US-ChristopherNeural")
             pitch = getattr(config, "EDGE_PITCH", "-4Hz")
@@ -423,28 +468,36 @@ class Speaker:
 
             data = asyncio.run(_download_audio(clean_text))
             if not data:
-                return
+                return False
 
             buf = io.BytesIO(data)
             audio, samplerate = sf.read(buf, dtype="float32")
 
-            if on_start:
-                on_start()
-
-            sd.play(audio, samplerate=samplerate)
-            sd.wait()  # Ensure entire sentence completes playback before returning
+            return self._play_audio_stream(
+                audio,
+                samplerate=samplerate,
+                interrupt_event=interrupt_event,
+                on_start=on_start,
+            )
         except Exception as exc:
             print(f"(Edge TTS audio error: {exc})")
+            return False
 
-
-
-    def say(self, text: str, on_start: Callable[[], None] | None = None) -> None:
+    def say(
+        self,
+        text: str,
+        on_start: Callable[[], None] | None = None,
+        interrupt_event: Optional[threading.Event] = None,
+    ) -> bool:
+        """Speaks text using Gemini TTS or Edge Neural TTS.
+        Returns True if interrupted by barge-in, False otherwise.
+        """
         if not text:
-            return
+            return False
 
         clean_text = clean_markdown_for_speech(text)
         if not clean_text:
-            return
+            return False
 
         # If user explicitly configured Gemini TTS, try that first
         use_gemini = (
@@ -482,17 +535,19 @@ class Speaker:
                         wf.writeframes(audio_bytes)
                     wav_buf.seek(0)
                 audio, samplerate = sf.read(wav_buf, dtype="float32")
-                if on_start:
-                    on_start()
-                sd.play(audio, samplerate=samplerate)
-                sd.wait()
-                return
+                return self._play_audio_stream(
+                    audio,
+                    samplerate=samplerate,
+                    interrupt_event=interrupt_event,
+                    on_start=on_start,
+                )
             except Exception as exc:
                 self._gemini_quota_exhausted = True
                 print(f"Gemini TTS quota/limit reached ({str(exc)[:60]}...), switched to Edge Neural TTS.")
 
         # Default fast streaming Edge Neural TTS
-        self._say_edge_tts(clean_text, on_start=on_start)
+        return self._say_edge_tts(clean_text, on_start=on_start, interrupt_event=interrupt_event)
+
 
 
 def send_to_jarvis(text: str) -> str:
