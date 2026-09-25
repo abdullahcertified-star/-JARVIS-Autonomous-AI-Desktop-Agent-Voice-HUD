@@ -79,7 +79,10 @@ from actions import (  # noqa: E402,F401
     media,
     mouse,
     news,
-    ocr,
     screenshot,
+    ocr,
     system,
+    vision,
 )
+
+

@@ -418,14 +418,33 @@ def search_files(query: str, root_folder: str = "") -> str:
     return _format_result(res)
 
 
+def describe_screen(query: str = "What is currently visible on my screen?") -> str:
+    """Inspect and describe what is currently visible on the screen or answer questions about open windows, diagrams, code, or UI."""
+    res = dispatch({"action": "vision", "operation": "describe_screen", "prompt": query})
+    return _format_result(res)
+
+
+def explain_screen_error(context: str = "") -> str:
+    """Inspect the screen specifically for error dialogs, alert popups, red terminal stack traces, or exception messages, and explain the fix."""
+    res = dispatch({"action": "vision", "operation": "explain_error", "context": context})
+    return _format_result(res)
+
+
 def read_screen_text(region: list = None) -> str:
-    """Extract and read visible text from the entire screen or a specific region [x, y, width, height] using OCR."""
+    """Extract and read visible text from the entire screen or a specific region [x, y, width, height] using OCR or vision perception."""
     payload = {"action": "ocr", "operation": "read_screen"}
     if region:
         payload["operation"] = "read_region"
         payload["region"] = region
     res = dispatch(payload)
+    if not res.get("success"):
+        # Fall back to Gemini VLM vision text extraction
+        v_payload = {"action": "vision", "operation": "read_text"}
+        if region:
+            v_payload["region"] = region
+        res = dispatch(v_payload)
     return _format_result(res)
+
 
 
 def calculate(expression: str) -> str:
@@ -828,6 +847,8 @@ ALL_TOOLS = [
     get_fact_summary,
     search_files,
     read_screen_text,
+    describe_screen,
+    explain_screen_error,
     calculate,
     get_detailed_system_info,
     quick_note,
@@ -1046,6 +1067,13 @@ def check_fast_path(text: str) -> Optional[str]:
     # Specific local IP lookup: e.g. "what is my local ip", "show my local ip", "private ip"
     if any(k in lowered for k in ("local ip", "private ip", "internal ip")):
         return execute_windows_command("what is my IP")
+
+    # 18. Screen perception & visual QA fast-paths:
+    if re.search(r"\b(?:what(?:'s|\s+is)\s+on\s+my\s+screen|describe\s+(?:my\s+)?screen|look\s+at\s+my\s+screen|what\s+do\s+you\s+see\s+on\s+my\s+screen)\b", lowered):
+        return describe_screen(text)
+
+    if re.search(r"\b(?:explain\s+(?:this\s+|the\s+)?error|what\s+is\s+this\s+error|explain\s+screen\s+error)\b", lowered):
+        return explain_screen_error(text)
 
     return None
 

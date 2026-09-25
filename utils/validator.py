@@ -29,6 +29,7 @@ ACTION_SCHEMAS: dict[str, list[str]] = {
     "ocr": ["operation"],
     "screenshot": ["operation"],
     "command": ["operation"],
+    "vision": ["operation"],
 }
 
 
