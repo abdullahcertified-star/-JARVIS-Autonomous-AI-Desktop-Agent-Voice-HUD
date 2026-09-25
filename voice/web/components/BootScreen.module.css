@@ -1,0 +1,130 @@
+.wrap {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 40px;
+  background: radial-gradient(circle at 30% 50%, #071018 0%, #050608 70%);
+}
+
+.textBlock {
+  max-width: 46%;
+}
+
+.title {
+  font-family: "Orbitron", sans-serif;
+  font-weight: 800;
+  font-size: 28px;
+  letter-spacing: 4px;
+  color: #6fe3ff;
+  text-shadow: 0 0 18px rgba(111, 227, 255, 0.7);
+}
+
+.version {
+  font-family: "Orbitron", sans-serif;
+  font-size: 11px;
+  letter-spacing: 3px;
+  color: #3f8fa8;
+  margin-top: 4px;
+}
+
+.subtitle {
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  color: #4fb8d6;
+  opacity: 0.75;
+  margin-top: 10px;
+  margin-bottom: 22px;
+}
+
+.lines {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.line {
+  font-size: 11.5px;
+  color: #8fe0f5;
+  opacity: 0;
+  animation: fadeIn 0.3s ease forwards;
+}
+
+.bullet {
+  color: #4fb8d6;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+  to {
+    opacity: 0.85;
+    transform: translateX(0);
+  }
+}
+
+.radar {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px dashed rgba(111, 227, 255, 0.4);
+}
+
+.ring1 {
+  width: 100%;
+  height: 100%;
+  animation: spin 12s linear infinite;
+}
+
+.ring2 {
+  width: 70%;
+  height: 70%;
+  border-style: solid;
+  border-color: rgba(111, 227, 255, 0.25);
+  animation: spin 8s linear infinite reverse;
+}
+
+.ring3 {
+  width: 42%;
+  height: 42%;
+  animation: spin 5s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.core {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #baf3ff;
+  box-shadow:
+    0 0 20px 6px rgba(111, 227, 255, 0.8),
+    0 0 50px 16px rgba(111, 227, 255, 0.4);
+  animation: pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scale(0.9);
+  }
+  50% {
+    transform: scale(1.15);
+  }
+}

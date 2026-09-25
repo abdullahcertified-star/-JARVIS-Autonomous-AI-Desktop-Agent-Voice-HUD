@@ -1,0 +1,235 @@
+.bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 48px;
+  flex: 0 0 auto;
+  padding: 0 16px;
+  background: rgba(4, 7, 14, 0.85);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(0, 240, 255, 0.12);
+  z-index: 100;
+}
+
+.drag {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  z-index: 1;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 2;
+}
+
+.statusDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #00f0ff;
+  box-shadow: 0 0 10px #00f0ff;
+  animation: pulse 2s infinite ease-in-out;
+}
+
+.statusDot.listening {
+  background: #00ff88;
+  box-shadow: 0 0 12px #00ff88;
+}
+
+.statusDot.thinking {
+  background: #ffaa00;
+  box-shadow: 0 0 12px #ffaa00;
+}
+
+.statusDot.speaking {
+  background: #00c8ff;
+  box-shadow: 0 0 15px #00c8ff;
+}
+
+.statusDot.error {
+  background: #ff3344;
+  box-shadow: 0 0 12px #ff3344;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.7; transform: scale(0.95); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+
+.brandText {
+  font-family: "Orbitron", sans-serif;
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 2px;
+  color: #00f0ff;
+  text-shadow: 0 0 12px rgba(0, 240, 255, 0.4);
+}
+
+.stateBadge {
+  font-size: 9px;
+  letter-spacing: 1px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(0, 240, 255, 0.08);
+  border: 1px solid rgba(0, 240, 255, 0.2);
+  color: #a0ecff;
+}
+
+.clockBadge {
+  font-family: "Share Tech Mono", monospace;
+  font-size: 11px;
+  color: #ffaa33;
+  letter-spacing: 1px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: rgba(255, 170, 51, 0.08);
+  border: 1px solid rgba(255, 170, 51, 0.25);
+  box-shadow: 0 0 8px rgba(255, 170, 51, 0.1);
+}
+
+.nav {
+  display: flex;
+  gap: 6px;
+  z-index: 2;
+}
+
+.navBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: #7ab3cc;
+  font-size: 11px;
+  letter-spacing: 0.8px;
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.navBtn:hover {
+  color: #00f0ff;
+  background: rgba(0, 240, 255, 0.08);
+}
+
+.navBtn.active {
+  color: #00f0ff;
+  background: rgba(0, 240, 255, 0.14);
+  border-color: rgba(0, 240, 255, 0.35);
+  box-shadow: 0 0 14px rgba(0, 240, 255, 0.15);
+}
+
+.icon {
+  font-size: 13px;
+}
+
+.navLabel {
+  display: inline;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 2;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.iconBtn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 240, 255, 0.06);
+  border: 1px solid rgba(0, 240, 255, 0.15);
+  color: #8cd6eb;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.iconBtn:hover {
+  background: rgba(0, 240, 255, 0.2);
+  color: #00f0ff;
+  box-shadow: 0 0 8px rgba(0, 240, 255, 0.3);
+}
+
+.iconBtn.muted {
+  background: rgba(255, 70, 70, 0.18);
+  border-color: rgba(255, 100, 100, 0.4);
+  color: #ff8080;
+}
+
+.iconBtn.activeControl {
+  background: rgba(0, 240, 255, 0.25);
+  border-color: #00f0ff;
+  color: #00f0ff;
+}
+
+.expandBtnHighlight {
+  background: rgba(0, 240, 255, 0.25) !important;
+  border-color: #00f0ff !important;
+  color: #00f0ff !important;
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.5) !important;
+  animation: pulse 1.8s infinite ease-in-out;
+}
+
+.closeBtn:hover {
+  background: rgba(255, 50, 50, 0.3);
+  border-color: #ff4444;
+  color: #ff8888;
+}
+
+@media (max-width: 760px) {
+  .clockBadge {
+    display: none;
+  }
+  .stateBadge {
+    display: none;
+  }
+  .navLabel {
+    display: none;
+  }
+  .navBtn {
+    padding: 5px 8px;
+    min-width: 30px;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 520px) {
+  .bar {
+    padding: 0 8px;
+    gap: 4px;
+  }
+  .brandText {
+    font-size: 11px;
+    letter-spacing: 1px;
+  }
+  .brand {
+    gap: 6px;
+  }
+  .nav {
+    gap: 4px;
+  }
+  .controls {
+    gap: 4px;
+  }
+  .iconBtn {
+    width: 25px;
+    height: 25px;
+    font-size: 11px;
+  }
+}

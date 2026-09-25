@@ -1,0 +1,7 @@
+-r requirements.txt
+sounddevice==0.5.5
+soundfile>=0.12.1
+google-genai>=0.8.0
+openwakeword==0.6.0
+faster-whisper==1.2.1
+

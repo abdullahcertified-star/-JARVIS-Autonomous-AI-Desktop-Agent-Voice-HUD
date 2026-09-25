@@ -1,0 +1,214 @@
+.terminalContainer {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  background: radial-gradient(circle at 50% 20%, rgba(0, 240, 255, 0.03) 0%, rgba(3, 7, 13, 0.98) 80%);
+  padding: 16px 20px;
+  gap: 12px;
+  box-sizing: border-box;
+}
+
+.terminalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 14px;
+  background: rgba(6, 14, 25, 0.7);
+  border: 1px solid rgba(0, 240, 255, 0.18);
+  border-radius: 6px;
+  backdrop-filter: blur(12px);
+}
+
+.terminalTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: "Orbitron", sans-serif;
+  font-size: 12px;
+  letter-spacing: 1.5px;
+  color: #00f0ff;
+  font-weight: 700;
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #00f0ff;
+  box-shadow: 0 0 8px #00f0ff;
+}
+
+.clearBtn {
+  font-family: "Orbitron", sans-serif;
+  font-size: 10px;
+  letter-spacing: 1px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  background: rgba(255, 60, 60, 0.1);
+  border: 1px solid rgba(255, 80, 80, 0.3);
+  color: #ff9999;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.clearBtn:hover {
+  background: rgba(255, 60, 60, 0.25);
+  border-color: #ff4444;
+  color: #ffb0b0;
+}
+
+.wrap {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  background: rgba(4, 10, 20, 0.6);
+  border: 1px solid rgba(0, 240, 255, 0.12);
+  border-radius: 8px;
+}
+
+.wrap::-webkit-scrollbar {
+  width: 6px;
+}
+.wrap::-webkit-scrollbar-thumb {
+  background: rgba(0, 240, 255, 0.25);
+  border-radius: 3px;
+}
+
+.empty {
+  margin: auto;
+  color: #5d889c;
+  font-size: 12.5px;
+  text-align: center;
+}
+
+.msg {
+  max-width: 82%;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.55;
+  word-wrap: break-word;
+  animation: pop 0.2s ease-out;
+}
+
+@keyframes pop {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.msgHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.you {
+  align-self: flex-end;
+  background: rgba(0, 240, 255, 0.08);
+  border: 1px solid rgba(0, 240, 255, 0.3);
+  color: #d8f5ff;
+  border-bottom-right-radius: 2px;
+}
+
+.jarvis {
+  align-self: flex-start;
+  background: rgba(255, 170, 51, 0.08);
+  border: 1px solid rgba(255, 170, 51, 0.25);
+  color: #ffe6c7;
+  border-bottom-left-radius: 2px;
+}
+
+.jarvis.negative {
+  background: rgba(255, 70, 70, 0.12);
+  border-color: rgba(255, 90, 90, 0.35);
+  color: #ffd6d6;
+}
+
+.tag {
+  font-family: "Orbitron", sans-serif;
+  font-size: 9.5px;
+  letter-spacing: 1.5px;
+  font-weight: 700;
+  color: #00f0ff;
+}
+
+.jarvis .tag {
+  color: #ffaa33;
+}
+
+.negative .tag {
+  color: #ff5566;
+}
+
+.timeTag {
+  font-size: 9px;
+  color: #648c9f;
+}
+
+.msgContent {
+  color: inherit;
+}
+
+/* TERMINAL INPUT FORM */
+.inputForm {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  background: rgba(2, 6, 12, 0.9);
+  border: 1px solid rgba(0, 240, 255, 0.3);
+  border-radius: 6px;
+  box-shadow: 0 0 16px rgba(0, 240, 255, 0.08);
+}
+
+.promptIndicator {
+  font-family: "Orbitron", sans-serif;
+  font-size: 14px;
+  font-weight: 800;
+  color: #00f0ff;
+}
+
+.terminalInput {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: "Share Tech Mono", monospace;
+  font-size: 13.5px;
+  color: #dcf5ff;
+}
+
+.terminalInput::placeholder {
+  color: #4a7488;
+}
+
+.sendBtn {
+  font-family: "Orbitron", sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  padding: 7px 14px;
+  border-radius: 4px;
+  background: rgba(0, 240, 255, 0.18);
+  border: 1px solid #00f0ff;
+  color: #00f0ff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sendBtn:hover:not(:disabled) {
+  background: #00f0ff;
+  color: #02070e;
+  box-shadow: 0 0 16px rgba(0, 240, 255, 0.6);
+}
+
+.sendBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
