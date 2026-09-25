@@ -159,6 +159,15 @@ JARVIS includes a floating desktop HUD featuring a Next.js/Three.js interactive 
 - **Pure-Software Text Extraction**: Transcribe readable text directly from the screen via Gemini Vision without requiring local Tesseract binaries.
 - **Ultra-Fast Path**: Regex triggers bypass conversational LLM overhead, capturing and analyzing the screen immediately.
 
+### Multi-Step Macro Orchestrator & Workflow Automation
+- **Built-in Workflows**:
+  - `dev_workspace`: *"Jarvis, prepare dev workspace"* launches VS Code, Terminal, GitHub, and sets audio volume to 30%.
+  - `goodnight_routine`: *"Goodnight routine"* pauses media playback, sets volume to 0%, minimizes all windows, and dims screen brightness.
+  - `meeting_mode`: *"Meeting mode"* silences background media, adjusts conversational volume, and cleans up window clutter.
+  - `gaming_mode`: *"Gaming mode"* maximizes display brightness and boosts gaming audio.
+  - `morning_briefing`: *"Morning routine"* sets volume, reads top technology news, and reports battery/network status.
+- **Custom User Macros**: Create, save, and delete custom chained desktop sequences saved persistently in `database/workflows.json`.
+
 ---
 
 ## Architecture
@@ -168,7 +177,7 @@ app.py                  Flask HTTP API (/chat, /execute, /dashboard)
 agent.py                Gemini AI Agent with function calling & 0ms fast-paths
 dispatcher.py           Central router, request validator, and latency logger
 config.py               Configuration, paths, environment variables
-actions/                Action domain handlers (vision, command, apps, explorer, system, etc.)
+actions/                Action domain handlers (macro, vision, command, apps, explorer, etc.)
 commands/               Windows Command Master reference knowledge base & safety engine
   catalog.py            PDF extractor and catalog compiler (492 commands)
   database.py           SQLite (commands.db) & JSON (commands.json) store with fuzzy search
@@ -181,14 +190,14 @@ scanner/                Windows filesystem, Start Menu, Registry, and Store app 
 search/                 RapidFuzz indexing over installed applications
 voice/                  Voice client: wake word listener, Whisper STT, TTS, and pywebview HUD
   web/                  Next.js 15 + Three.js holographic particle orb application
-tests/                  Pytest suite (123 automated unit and integration tests)
+tests/                  Pytest suite (130 automated unit and integration tests)
 ```
 
 ---
 
 ## Automated Tests
 
-Run the full automated test suite (including command database, safety blocks, agent tools, vision QA, and API routes):
+Run the full automated test suite (including command database, safety blocks, agent tools, vision QA, macro orchestrator, and API routes):
 
 ```powershell
 .venv\Scripts\pip install -r requirements-dev.txt
@@ -196,7 +205,7 @@ Run the full automated test suite (including command database, safety blocks, ag
 ```
 
 ```text
-======================= 123 passed, 1 warning in 25.03s =======================
+======================= 130 passed, 1 warning in 21.43s =======================
 ```
 
 ---

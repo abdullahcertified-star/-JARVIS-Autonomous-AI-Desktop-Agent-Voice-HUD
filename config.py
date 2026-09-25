@@ -13,6 +13,8 @@ BASE_DIR: Path = Path(__file__).resolve().parent
 
 DATABASE_DIR: Path = BASE_DIR / "database"
 APPS_JSON_PATH: Path = DATABASE_DIR / "apps.json"
+WORKFLOWS_JSON_PATH: Path = DATABASE_DIR / "workflows.json"
+
 
 LOGS_DIR: Path = BASE_DIR / "logs"
 LOG_FILE: Path = LOGS_DIR / "jarvis.log"

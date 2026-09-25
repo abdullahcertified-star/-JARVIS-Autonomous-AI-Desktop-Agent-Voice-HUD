@@ -446,6 +446,31 @@ def read_screen_text(region: list = None) -> str:
     return _format_result(res)
 
 
+def run_workflow(name: str) -> str:
+    """Execute a multi-step macro workflow by name (e.g. 'dev_workspace', 'goodnight_routine', 'meeting_mode', 'gaming_mode', 'morning_briefing')."""
+    res = dispatch({"action": "macro", "operation": "run", "name": name})
+    return _format_result(res)
+
+
+def list_workflows() -> str:
+    """List all available automated multi-step workflows and user macros."""
+    res = dispatch({"action": "macro", "operation": "list"})
+    return _format_result(res)
+
+
+def create_custom_workflow(name: str, steps: list, description: str = "") -> str:
+    """Create or save a new multi-step automated workflow macro. 'steps' is a list of action payload dictionaries."""
+    res = dispatch({
+        "action": "macro",
+        "operation": "save",
+        "name": name,
+        "steps": steps,
+        "description": description,
+    })
+    return _format_result(res)
+
+
+
 
 def calculate(expression: str) -> str:
     """Safely calculate any math expression, percentage, power, or square root (e.g. '450 * 1.15', '2^16', 'sqrt(144) + 25')."""
@@ -849,6 +874,9 @@ ALL_TOOLS = [
     read_screen_text,
     describe_screen,
     explain_screen_error,
+    run_workflow,
+    list_workflows,
+    create_custom_workflow,
     calculate,
     get_detailed_system_info,
     quick_note,
@@ -1075,7 +1103,27 @@ def check_fast_path(text: str) -> Optional[str]:
     if re.search(r"\b(?:explain\s+(?:this\s+|the\s+)?error|what\s+is\s+this\s+error|explain\s+screen\s+error)\b", lowered):
         return explain_screen_error(text)
 
+    # 19. Multi-step macro & workflow automation fast-paths:
+    if re.search(r"\b(?:prepare|setup|start)\s+(?:the\s+|my\s+)?(?:dev|development|coding)\s+(?:workspace|environment|mode)\b", lowered) or lowered in ("dev mode", "dev workspace", "prepare dev workspace", "coding mode"):
+        return run_workflow("dev_workspace")
+
+    if re.search(r"\b(?:good\s*night(?:\s+routine)?|bedtime\s+routine|bedtime\s+mode|sleep\s+routine)\b", lowered):
+        return run_workflow("goodnight_routine")
+
+    if re.search(r"\b(?:meeting\s+mode|start\s+(?:the\s+)?meeting|prep(?:are)?\s+meeting)\b", lowered):
+        return run_workflow("meeting_mode")
+
+    if re.search(r"\b(?:gaming\s+mode|game\s+mode|start\s+gaming)\b", lowered):
+        return run_workflow("gaming_mode")
+
+    if re.search(r"\b(?:morning\s+briefing|morning\s+routine|start\s+my\s+day)\b", lowered):
+        return run_workflow("morning_briefing")
+
+    if re.search(r"\b(?:list\s+(?:all\s+)?(?:workflows|macros)|show\s+(?:my\s+)?(?:workflows|macros))\b", lowered):
+        return list_workflows()
+
     return None
+
 
 
 

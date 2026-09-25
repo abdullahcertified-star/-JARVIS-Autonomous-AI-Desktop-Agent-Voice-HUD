@@ -30,7 +30,9 @@ ACTION_SCHEMAS: dict[str, list[str]] = {
     "screenshot": ["operation"],
     "command": ["operation"],
     "vision": ["operation"],
+    "macro": ["operation"],
 }
+
 
 
 def validate_request(data: object) -> tuple[bool, str | None]:

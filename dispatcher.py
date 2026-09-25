@@ -83,6 +83,8 @@ from actions import (  # noqa: E402,F401
     ocr,
     system,
     vision,
+    macro,
 )
+
 
 
