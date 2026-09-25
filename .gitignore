@@ -21,6 +21,7 @@ env/
 # Logs, Databases & User Data
 *.log
 logs/
+*.db
 database/apps.json
 screenshots/
 scratch/

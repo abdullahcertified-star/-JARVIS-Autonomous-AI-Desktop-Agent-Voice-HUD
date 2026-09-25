@@ -81,6 +81,70 @@ def _process_and_reply(text: str, window: JarvisWindow, speaker: Speaker) -> Non
     window.set_state("listening")
 
 
+def _is_terminate_command(text: str) -> bool:
+    clean = re.sub(r"[^a-z\s]", "", text.lower()).strip()
+    terminate_phrases = (
+        "terminate yourself", "terminate jarvis", "shut down yourself",
+        "shutdown yourself", "shutdown jarvis", "shut down jarvis",
+        "exit jarvis", "quit jarvis", "close yourself", "close jarvis",
+        "kill yourself", "terminate program", "exit program",
+        "close the program", "self destruct", "turn yourself off",
+        "turn off jarvis"
+    )
+    if any(p in clean for p in terminate_phrases):
+        return True
+    words = clean.split()
+    if any(w in words for w in ("terminate", "exit", "quit")) and ("yourself" in words or "jarvis" in words or len(words) <= 2):
+        return True
+    return False
+
+
+def _handle_voice_meta_command(
+    text: str,
+    window: JarvisWindow,
+    speaker: Speaker,
+    stop_event: threading.Event,
+) -> bool:
+    """Handles meta conversation commands like termination or standby/sleep.
+    Returns True if handled (loop should break or exit), False otherwise."""
+    clean_lower = text.lower().strip()
+
+    # 1. Termination: "Jarvis terminate yourself", "shutdown jarvis", "exit", etc.
+    if _is_terminate_command(clean_lower):
+        farewell = "Positive sir, terminating all processes and shutting down. Goodbye, Sir Abdullah."
+        print(f"Jarvis: {farewell}")
+        window.add_message("jarvis", farewell, "positive")
+        window.set_state("speaking")
+        try:
+            speaker.say(farewell)
+        except Exception:
+            pass
+        stop_event.set()
+        window.close()
+        raise StopRequested
+
+    # 2. Standby / Sleep: "go to sleep", "sleep", "stand by", "dismissed", "goodbye", "bye-bye jarvis"
+    sleep_triggers = (
+        "go to sleep", "sleep", "stand by", "stand down",
+        "stop listening", "goodbye", "bye jarvis", "bye-bye jarvis",
+        "bye bye jarvis", "sleep jarvis", "dismissed", "shut up",
+        "rest now", "take a break"
+    )
+    if any(trig in clean_lower for trig in sleep_triggers):
+        standby_msg = "Standing by, Sir Abdullah."
+        print(f"Jarvis: {standby_msg}")
+        window.add_message("jarvis", standby_msg, "positive")
+        window.set_state("speaking")
+        try:
+            speaker.say(standby_msg)
+        except Exception as exc:
+            print(f"(playback error: {exc})")
+        window.set_state("idle")
+        return True
+
+    return False
+
+
 def _voice_loop(window: JarvisWindow, stop_event: threading.Event) -> None:
     wake_word = None
     try:
@@ -148,10 +212,11 @@ def _voice_loop(window: JarvisWindow, stop_event: threading.Event) -> None:
                 else:
                     print(f"You: {text}")
                     window.add_message("you", text)
+                    if _handle_voice_meta_command(text, window, speaker, stop_event):
+                        continue
                     _process_and_reply(text, window, speaker)
 
             # 3. CONTINUOUS ACTIVE CONVERSATION SESSION (stays awake for 45s)
-            # The user does NOT need to repeat "Hey Jarvis" for follow-up commands!
             while True:
                 if stop_event is not None and stop_event.is_set():
                     raise StopRequested
@@ -189,24 +254,9 @@ def _voice_loop(window: JarvisWindow, stop_event: threading.Event) -> None:
                 print(f"You: {text}")
                 window.add_message("you", text)
 
-                # Check for explicit sleep / standby commands
-                clean_lower = text.lower().strip()
-                sleep_triggers = (
-                    "go to sleep", "sleep", "stand by", "stand down",
-                    "stop listening", "goodbye", "bye jarvis", "sleep jarvis",
-                    "dismissed", "shut up", "rest now", "take a break"
-                )
-                if any(trig in clean_lower for trig in sleep_triggers):
-                    standby_msg = "Standing by, Sir Abdullah."
-                    print(f"Jarvis: {standby_msg}")
-                    window.add_message("jarvis", standby_msg, "positive")
-                    window.set_state("speaking")
-                    try:
-                        speaker.say(standby_msg)
-                    except Exception as exc:
-                        print(f"(playback error: {exc})")
-                    window.set_state("idle")
-                    break  # Sleep immediately!
+                # Check for termination or sleep commands
+                if _handle_voice_meta_command(text, window, speaker, stop_event):
+                    break
 
                 # Process the command
                 _process_and_reply(text, window, speaker)
@@ -224,7 +274,12 @@ def main() -> None:
     stop_event = threading.Event()
     window = JarvisWindow()
     window.on_close(stop_event.set)
-    window.start(_voice_loop, args=(window, stop_event))
+    try:
+        window.start(_voice_loop, args=(window, stop_event))
+    finally:
+        stop_event.set()
+        import os
+        os._exit(0)
 
 
 if __name__ == "__main__":

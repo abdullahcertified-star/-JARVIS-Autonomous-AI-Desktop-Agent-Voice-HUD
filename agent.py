@@ -771,7 +771,38 @@ def list_connected_audio_devices() -> str:
         return f"Failed to list audio devices: {exc}"
 
 
+def execute_windows_command(request: str, confirmed: bool = False) -> str:
+    """Execute or query a Windows CMD or PowerShell command using the Windows Command Master Knowledge Base.
+    Understands natural language requests (e.g. 'what is my IP', 'which process is using port 5000',
+    'show running processes', 'create folder Projects on desktop', 'check my internet', 'find Python').
+    Validates safety and 4-tier risk levels (LOW, MEDIUM, HIGH, CRITICAL). If a command requires user
+    confirmation, it asks before running.
+    """
+    res = dispatch({
+        "action": "command",
+        "operation": "execute",
+        "request": request,
+        "confirmed": confirmed,
+    })
+    return _format_result(res)
+
+
+def search_windows_commands(query: str, limit: int = 5) -> str:
+    """Search the Windows Command Master Knowledge Base (492 reference commands across networking,
+    diagnostics, developer tools, PowerShell, disk management, repair, and Windows administration).
+    """
+    res = dispatch({
+        "action": "command",
+        "operation": "search",
+        "query": query,
+        "limit": limit,
+    })
+    return _format_result(res)
+
+
 ALL_TOOLS = [
+    execute_windows_command,
+    search_windows_commands,
     open_app,
     close_app,
     open_drive,
@@ -998,6 +1029,23 @@ def check_fast_path(text: str) -> Optional[str]:
     settings_m = re.search(r"\bopen\s+([a-zA-Z\s]+)\s+settings\b", lowered)
     if settings_m:
         return open_windows_settings(settings_m.group(1).strip())
+
+    # 17. Windows Command Knowledge Base fast-paths (0ms local execution):
+    # Port process lookup: e.g. "which process is using port 5000", "find process using port 8080", "check port 3000"
+    if "port" in lowered and re.search(r"\b\d{2,5}\b", lowered):
+        return execute_windows_command(text)
+
+    # Running processes: e.g. "show me all running processes", "what programs are running"
+    if any(k in lowered for k in ("running processes", "what programs are running", "show all processes")):
+        return execute_windows_command(text)
+
+    # Internet connectivity: e.g. "check my internet", "test internet connectivity"
+    if any(k in lowered for k in ("check my internet", "test internet connectivity", "is internet working")):
+        return execute_windows_command(text)
+
+    # Specific local IP lookup: e.g. "what is my local ip", "show my local ip", "private ip"
+    if any(k in lowered for k in ("local ip", "private ip", "internal ip")):
+        return execute_windows_command("what is my IP")
 
     return None
 

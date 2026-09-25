@@ -108,6 +108,17 @@ def _run_command(data: dict[str, Any]) -> dict[str, Any]:
         return fail("'timeout' must be a number of seconds")
 
     cwd = data.get("cwd") or None
+    confirmed = bool(data.get("confirmed", False))
+
+    from commands.safety import SafetyEngine
+    allowed, prompt, report = SafetyEngine.validate_execution(command, shell="cmd", confirmed=confirmed)
+    if not allowed:
+        return fail(
+            prompt or "Execution blocked by safety policy.",
+            requires_confirmation=report.requires_confirmation,
+            risk_level=report.risk_level.value,
+            command=command,
+        )
 
     try:
         result = subprocess.run(

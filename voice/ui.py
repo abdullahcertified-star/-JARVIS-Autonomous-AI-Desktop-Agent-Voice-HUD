@@ -288,11 +288,23 @@ class JarvisWindow:
         `target` runs on a background thread once the window is ready."""
         webview.start(target, args, gui="edgechromium")
 
+    def close(self) -> None:
+        try:
+            self._window.destroy()
+        except Exception:
+            pass
+
     def set_state(self, state: State) -> None:
-        self._window.evaluate_js(f"setState('{state}')")
+        try:
+            self._window.evaluate_js(f"setState('{state}')")
+        except Exception:
+            pass
 
     def set_level(self, level: float) -> None:
-        self._window.evaluate_js(f"setLevel({level})")
+        try:
+            self._window.evaluate_js(f"setLevel({level})")
+        except Exception:
+            pass
 
     def add_message(
         self,
@@ -300,8 +312,14 @@ class JarvisWindow:
         text: str,
         tone: Literal["positive", "negative"] = "positive",
     ) -> None:
-        escaped = text.replace("\\", "\\\\").replace("'", "\\'").replace("\n", "<br>")
-        self._window.evaluate_js(f"addMessage('{who}', '{escaped}', '{tone}')")
+        try:
+            escaped = text.replace("\\", "\\\\").replace("'", "\\'").replace("\n", "<br>")
+            self._window.evaluate_js(f"addMessage('{who}', '{escaped}', '{tone}')")
+        except Exception:
+            pass
 
     def clear_log(self) -> None:
-        self._window.evaluate_js("clearLog()")
+        try:
+            self._window.evaluate_js("clearLog()")
+        except Exception:
+            pass

@@ -73,6 +73,7 @@ from actions import (  # noqa: E402,F401
     apps,
     browser,
     clipboard,
+    command,
     explorer,
     keyboard,
     media,

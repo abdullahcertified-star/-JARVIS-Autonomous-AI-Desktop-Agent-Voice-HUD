@@ -28,6 +28,7 @@ ACTION_SCHEMAS: dict[str, list[str]] = {
     "media": ["operation"],
     "ocr": ["operation"],
     "screenshot": ["operation"],
+    "command": ["operation"],
 }
 
 

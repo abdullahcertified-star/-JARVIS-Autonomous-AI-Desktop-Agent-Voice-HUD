@@ -1,27 +1,35 @@
 # JARVIS Desktop Automation Server & AI Agent
 
-A local Windows desktop automation engine and AI assistant powered directly by
-the **Google GenAI SDK (`google-genai`)** with native Gemini function calling.
-Commands can be sent via natural language (voice or `POST /chat`) or directly via
-structured JSON (`POST /execute`). The agent executes native desktop actions
-in-process through a fixed, validated set of actions (see **Security** below).
+[![License: GPL-3.0](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+[![Python: 3.10+](https://img.shields.io/badge/Python-3.10%2B-brightgreen.svg)](https://www.python.org/)
+[![AI: Google GenAI](https://img.shields.io/badge/AI-Google%20GenAI%20SDK-orange.svg)](https://ai.google.dev/)
+[![Speech: Edge Neural / Gemini TTS](https://img.shields.io/badge/Voice-Edge%20Neural%20%2F%20Gemini-purple.svg)](voice/)
+
+A local Windows desktop automation engine, voice assistant, and autonomous AI agent powered directly by the **Google GenAI SDK (`google-genai`)** with native Gemini function calling.
+
+Commands can be spoken out loud via the floating **holographic Next.js/Three.js HUD**, queried via natural language (`POST /chat`), or triggered directly via structured JSON (`POST /execute`).
 
 ```json
-{"message": "Jarvis, open Chrome and search for quantum computing"}
+{"message": "Jarvis, find which process is using port 5000"}
 ```
-
 ```json
-{"success": true, "reply": "Searching Google for quantum computing in Google Chrome, sir."}
+{"success": true, "reply": "Positive sir, port 5000 is currently free and not in use by any process."}
 ```
 
-## Why no app list to maintain
+---
 
-There is no hardcoded map of app names to paths anywhere in this project.
-On first run (or whenever `database/apps.json` is missing), the server scans
-the machine — Start Menu, Desktop, the Windows Registry (App Paths +
-Uninstall keys), Program Files, `PATH`, and Microsoft Store/UWP packages —
-merges what it finds, generates search aliases automatically, and caches the
-result. Install Discord tomorrow, restart JARVIS, and it's just there.
+## Key Features
+
+- **No Application Lists to Maintain**: Dynamically scans the Start Menu, Desktop, Windows Registry (`App Paths` + `Uninstall`), `PATH`, `Program Files`, and Microsoft Store (UWP) apps on first run with RapidFuzz alias generation.
+- **Windows Command Master Knowledge Base**: Integrates **492 reference commands** across 13 Windows administration, networking, developer, and diagnostics families.
+- **4-Tier Safety & Risk Classification**: Classifies every command into **`LOW`**, **`MEDIUM`**, **`HIGH`**, or **`CRITICAL`** risk. Destructive operations (`format`, `taskkill`, `del /s`, `reg delete`, `netsh advfirewall`) are strictly gated and require explicit confirmation.
+- **Natural Language Intent Mapping**: Converts conversational requests (*"what's my IP"*, *"find port 5000"*, *"create folder Projects on desktop"*) into validated Windows CLI and PowerShell commands with dynamic parameter binding.
+- **Natural Language Result Interpretation**: Formats raw technical `stdout`/`stderr` into concise, humanized spoken responses.
+- **Holographic 3D Voice HUD**: Floating Next.js + Three.js particle sphere reacting to wake words, voice amplitude, and listening states with continuous conversation sessions.
+- **Graceful Self-Termination**: Understands natural shutdown commands (*"Jarvis terminate yourself"*, *"shutdown jarvis"*, *"goodbye"*, *"stand down"*), closing the HUD and stopping all background audio loops cleanly.
+- **Rich Training Dataset**: Includes **24,110 natural-language training pairs** in `database/jarvis_command_dataset.jsonl` for offline fine-tuning or evaluation.
+
+---
 
 ## Setup
 
@@ -32,8 +40,7 @@ python -m venv .venv
 ```
 
 First run prints something like:
-
-```
+```text
 Scanning installed applications...
 Found 1345 applications in 2.9s.
   ✓ Google Chrome
@@ -44,150 +51,147 @@ Application database loaded.
 JARVIS Desktop API Ready.
 ```
 
-Later runs load `database/apps.json` from cache instead of rescanning. Force
-a rescan (e.g. after installing new software) with the `refresh_apps`
-action, or by deleting `database/apps.json`.
+Configure your environment in `.env` (copy from [`.env.example`](.env.example)):
+```env
+GEMINI_API_KEY=your_gemini_api_key_here
+JARVIS_GEMINI_MODEL=gemini-flash-lite-latest
+JARVIS_HOST=0.0.0.0
+JARVIS_PORT=5000
+```
 
-Config (host/port/debug/search sensitivity) lives in `config.py`, overridable
-via `.env` — see the `JARVIS_*` variables there.
+---
 
-Optional: OCR requires the [Tesseract OCR](https://github.com/UB-Mannheim/tesseract/wiki)
-binary on `PATH` (not pip-installable). Without it, `ocr` actions return a
-clear error instead of failing silently.
+## Windows Command Knowledge Base & Safety Layer
 
-## Security
+JARVIS embeds an internal command knowledge base covering 13 master Windows categories:
 
-There is no authentication in front of `/execute`, and its capabilities
-include arbitrary shell command execution (`system.run_command`), reading
-and writing any file the OS account can reach (`explorer.read`/`create`/
-`update`), and full power control (`system.shutdown`/`restart`). This is a
-deliberate design choice matching the trust model of the whole project: it
-executes because *you* (or your AI agent) told it to, the same as running a
-command in your own terminal.
+| Category | Commands | Common Uses |
+| :--- | :---: | :--- |
+| **File & Directory** | 43 | `dir`, `tree`, `mkdir`, `robocopy`, `icacls`, `cipher`, `makecab` |
+| **System & Information** | 28 | `ver`, `winver`, `systeminfo`, `hostname`, `whoami`, `msinfo32` |
+| **Networking** | 33 | `ipconfig`, `ping`, `netstat`, `nslookup`, `route`, `Test-NetConnection` |
+| **Processes, Services & Tasks** | 23 | `tasklist`, `taskkill`, `sc`, `schtasks`, `Get-Service`, `Start-Process` |
+| **Users, Groups & Security** | 39 | `net user`, `net localgroup`, `whoami /all`, `cmdkey`, `Get-Acl`, `auditpol` |
+| **Disk, Storage & Recovery** | 29 | `diskpart`, `chkdsk`, `defrag`, `format`, `Get-Disk`, `mountvol` |
+| **Windows Repair & Administration** | 36 | `sfc`, `dism`, `bootrec`, `bcdedit`, `perfmon`, `resmon`, `reg` |
+| **CMD Shell & Batch Scripting** | 44 | `for`, `if`, `set`, `assoc`, `ftype`, `pushd`, `popd`, `redirection` |
+| **PowerShell Core / Windows PowerShell** | 89 | `Get-ChildItem`, `Select-String`, `Invoke-WebRequest`, `Get-WinEvent` |
+| **Developer & Git** | 49 | `git`, `python`, `pip`, `npm`, `node`, `winget`, `dotnet`, `java` |
+| **Windows Package & App Management** | 20 | `winget`, `msiexec`, `Get-AppxPackage`, `DISM /Get-ProvisionedAppxPackages` |
+| **Diagnostics, Logs & Performance** | 26 | `eventvwr`, `wevtutil`, `resmon`, `logman`, `pktmon`, `typeperf` |
+| **Windows Scripting / Legacy Utilities** | 33 | `cscript`, `wsl`, `powershell`, `pwsh`, `robocopy`, `bitsadmin` |
 
-That only holds as long as nothing untrusted can reach port `5000`:
-- Don't bind `JARVIS_HOST` to a public interface or forward the port through
-  your router.
-- Keep it to `127.0.0.1`/Docker's internal network (`host.docker.internal`)
-  unless you have a real reason and a real auth layer in front of it.
-- Treat anything with network access to this port as having full control of
-  the machine, because it does.
+### Safety Risk Policy
 
-`explorer.delete` goes through the Recycle Bin (not a permanent unlink), so
-an accidental or bad AI-driven delete is recoverable the same way an
-accidental Explorer delete is — that's the one safety net built in. Nothing
-else here has a confirmation step; the AI is expected to get the request
-right the first time, same as you would.
+```
+User Request ──► Intent Matcher ──► Safety Engine ──► [Risk Check]
+                                                           │
+              ┌────────────────────────────────────────────┴───────────────────────────┐
+              ▼                                                                        ▼
+       [LOW / MEDIUM]                                                           [HIGH / CRITICAL]
+       Auto-executed                                                            Confirmation Required
+       • ipconfig, ping, tasklist                                               • taskkill, del /s, rd /s
+       • dir, systeminfo, whoami                                                • format, diskpart, bcdedit
+       • mkdir, winget install                                                  • reg delete, netsh advfirewall
+```
 
-## API
+For full details, see [`COMMANDS_GUIDE.md`](COMMANDS_GUIDE.md).
 
-Endpoints:
-- `POST /chat`: Natural-language interaction with the JARVIS Gemini Agent (Automatic Function Calling). Body: `{"message": "string"}`.
-- `POST /chat/reset`: Clears the agent's multi-turn conversation memory.
-- `POST /execute`: Direct low-level structured JSON execution endpoint.
-- `GET /`: Health check reporting server status and application index count.
+---
 
-Every response is `{"success": bool, "message": str, ...extra fields}`. The
-HTTP status is `200` for any request the server understood and processed
-(including a business-logic failure like "app not found" — check `success`),
-and `400` only when the body wasn't valid JSON or missed required parameters.
+## API Reference
 
-### Actions
+### Endpoints
+- `POST /chat`: Multi-turn conversational interaction with JARVIS (supports automatic function calling). Body: `{"message": "string"}`.
+- `POST /chat/reset`: Clears conversation history.
+- `POST /execute`: Direct low-level JSON action dispatcher.
+- `GET /`: Health status and count of indexed applications.
+- `GET /dashboard`: Web telemetry dashboard.
 
-| action | fields | notes |
-|---|---|---|
-| `open_app` | `target` (aliases: `app`, `app_name`) | Fuzzy-matched against the app database. |
-| `refresh_apps` | — | Rescans the machine and rebuilds the database. |
-| `open_url` | `url` (+optional `browser`) | |
-| `search_google` | `query` (+optional `browser`) | |
-| `search_youtube` | `query` (+optional `browser`) | |
-| `get_news` | optional `topic`, `limit` | Google News RSS feed items. |
-| `keyboard` | `operation`: `type` (+`text`) / `press` (+`key`) / `hotkey` (+`keys`: list) | |
-| `mouse` | `operation`: `move`/`click`/`double_click` (+`x`,`y`,`button`) / `drag` (+`x1`,`y1`,`x2`,`y2`) / `scroll` (+`amount`) / `position` | |
-| `clipboard` | `operation`: `copy` (+`text`) / `paste` / `clear` | |
-| `explorer` | `operation`: `open` / `reveal` (+`path`) / `read` (+`path`) / `create` (+`path`, `content`, `is_folder`) / `update` (+`path`, `content`, `append`) / `delete` (+`path`) | File CRUD. `read` lists a directory or returns file text (capped, see `truncated`). `delete` goes to the Recycle Bin, not permanent. `create` fails if the path already exists; `update` fails if it doesn't. |
-| `system` | `operation`: `shutdown`/`restart`/`lock`/`sleep`/`volume_up`/`volume_down`/`mute`/`set_volume` (+`level`: 0-100)/`status`/`run_command` (+`command`, optional `cwd`, `timeout`) | `run_command` executes via a shell subprocess and returns `stdout`/`stderr`/`exit_code` -- `success` reflects the command's own exit code, not just whether it ran. |
-| `media` | `operation`: `play_pause`/`next`/`previous`/`volume_up`/`volume_down`/`mute` | |
-| `screenshot` | `operation`: `capture` (+optional `region`: `[x,y,w,h]`) | Saved under `screenshots/`. |
-| `ocr` | `operation`: `read_screen` / `read_region` (+`region` for the latter) | Requires Tesseract. |
+### Core Dispatcher Actions
 
-Unknown actions/operations and missing required fields return
-`{"success": false, "message": "..."}` with a specific explanation.
+| Action | Required Fields | Description |
+| :--- | :--- | :--- |
+| `command` | `operation` (`execute` / `match` / `search` / `info`) | Natural-language Windows command executor, intent matcher, and knowledge base search. |
+| `open_app` | `target` (aliases: `app`, `app_name`) | Fuzzy-matches and launches any installed desktop or Store application. |
+| `refresh_apps` | — | Rescans the system and updates `database/apps.json`. |
+| `open_url` | `url` (+optional `browser`) | Opens a web page in default or specified browser. |
+| `search_google` | `query` (+optional `browser`) | Performs a Google search. |
+| `search_youtube` | `query` (+optional `browser`) | Searches YouTube. |
+| `get_news` | optional `topic`, `limit` | Fetches live Google News RSS headlines. |
+| `keyboard` | `operation`: `type` / `press` / `hotkey` | Keystroke and text typing automation. |
+| `mouse` | `operation`: `move` / `click` / `scroll` / `position` | Cursor movement and clicks. |
+| `clipboard` | `operation`: `copy` / `paste` / `clear` | Windows clipboard management. |
+| `explorer` | `operation`: `open` / `reveal` / `read` / `create` / `update` / `delete` | File/folder CRUD. Deletions safely route to Recycle Bin via `send2trash`. |
+| `system` | `operation`: `status` / `volume_up` / `volume_down` / `set_volume` / `mute` / `run_command` / `shutdown` / `restart` / `lock` / `sleep` | Controls system hardware, audio, power states, and executes validated shell commands. |
+| `media` | `operation`: `play_pause` / `next` / `previous` / `mute` | Standard media playback virtual keys. |
+| `screenshot` | `operation`: `capture` (+optional `region`) | Captures and saves desktop screenshots to `screenshots/`. |
+| `ocr` | `operation`: `read_screen` / `read_region` | Optical character recognition (requires Tesseract). |
 
-`browser` on the three URL-opening actions is optional and fuzzy-matched
-the same way `open_app`'s `target` is (e.g. `"edge"`, `"chrome"`, `"firefox"`)
--- omit it to use the OS default browser instead.
+---
+
+## Holographic Voice HUD
+
+JARVIS includes a floating desktop HUD featuring a Next.js/Three.js interactive particle sphere.
+
+### Running the Voice Client
+```powershell
+.venv\Scripts\pip install -r requirements-voice.txt
+.venv\Scripts\python -m voice.main
+```
+
+### Voice Interaction Features
+- **Wake Word**: Offline detection of *"Hey Jarvis"* via `openWakeWord`.
+- **Speech Recognition**: Local Whisper transcription (`faster-whisper`) with automated speech-to-text phonetic repair.
+- **Speech Synthesis**: Ultra-natural Edge Neural TTS / Gemini TTS with natural humanized punctuation pauses.
+- **Continuous Conversation**: Stays awake for 45 seconds after wake-up so you don't have to repeat *"Hey Jarvis"* for follow-up queries.
+- **Voice Control & Standby**:
+  - Say *"go to sleep"*, *"stand by"*, *"dismissed"*, or *"goodbye"* to enter standby mode.
+  - Say *"Jarvis terminate yourself"*, *"shutdown jarvis"*, or *"exit"* to close the application and stop all background processes cleanly.
+
+---
 
 ## Architecture
 
-```
-app.py               Flask app factory, startup banner, /chat, /execute, and / routes
-agent.py             Autonomous Gemini Agent (google-genai) with in-process tool calling
-dispatcher.py        action-name -> handler registry, validation, logging, timing
-config.py            paths, host/port/debug, Gemini keys/models, search sensitivity
-database/apps.json   generated app database (gitignored, regenerated on demand)
-scanner/             one module per discovery source + app_scanner.py orchestrator
-search/              RapidFuzz-backed AppIndex over the app database
-actions/             one module per action domain, handlers self-register with @dispatcher.register
-utils/               logger, request validator, path resolution, small shared helpers
-logs/jarvis.log      one structured line per request: action, target, success, duration
-voice/               local voice client: wake-word, whisper STT, agent bridge, neural TTS, GUI
-tests/               pytest: unit tests for search, agent, actions, and Flask API
-```
-
-Adding a new action means adding one function to an `actions/*.py` module
-decorated with `@register("your_action")`, an entry in
-`utils/validator.py`'s `ACTION_SCHEMAS`, and exposing the Python tool in
-`agent.py` — `app.py` and `dispatcher.py` never need to change.
-
-## AI Agent & Natural Language Chat
-
-JARVIS features a built-in agent powered by the **Google GenAI SDK (`google-genai`)**.
-No external orchestrator or Docker containers are required.
-
-To chat with JARVIS via HTTP:
-```powershell
-Invoke-RestMethod -Method Post http://127.0.0.1:5000/chat `
-  -ContentType "application/json" `
-  -Body '{"message": "Jarvis, what is the system status?"}'
+```text
+app.py                  Flask HTTP API (/chat, /execute, /dashboard)
+agent.py                Gemini AI Agent with function calling & 0ms fast-paths
+dispatcher.py           Central router, request validator, and latency logger
+config.py               Configuration, paths, environment variables
+actions/                Action domain handlers (command, apps, explorer, system, etc.)
+commands/               Windows Command Master reference knowledge base & safety engine
+  catalog.py            PDF extractor and catalog compiler (492 commands)
+  database.py           SQLite (commands.db) & JSON (commands.json) store with fuzzy search
+  safety.py             4-tier risk classification, injection protection, confirmation policy
+  executor.py           Safe CMD and PowerShell subprocess runner with timeouts
+  interpreter.py        Translates CLI stdout/stderr into voice-friendly natural language
+  intent_matcher.py     Natural-language intent detector and dynamic parameter parser
+  dataset_generator.py  Generates 24,000+ training records (jarvis_command_dataset.jsonl)
+scanner/                Windows filesystem, Start Menu, Registry, and Store app scanner
+search/                 RapidFuzz indexing over installed applications
+voice/                  Voice client: wake word listener, Whisper STT, TTS, and pywebview HUD
+  web/                  Next.js 15 + Three.js holographic particle orb application
+tests/                  Pytest suite (98 automated unit and integration tests)
 ```
 
-The agent automatically selects and executes the appropriate desktop tools,
-maintains conversation history, and responds with the JARVIS persona.
+---
 
-## Tests
+## Automated Tests
+
+Run the full automated test suite (including command database, safety blocks, agent tools, and API routes):
 
 ```powershell
 .venv\Scripts\pip install -r requirements-dev.txt
 .venv\Scripts\python -m pytest tests/ -v
 ```
 
-`test_search.py` runs against an in-memory fixture.
-`test_agent.py` tests agent tool mappings, result formatting, and the `/chat` route.
-`test_api.py` drives the Flask app and exercises reversible actions.
-
-## Voice client
-
-`voice/` is a separate, standalone voice interface that connects directly to the
-in-process JARVIS Gemini agent. It listens for the wake word "Hey Jarvis"
-(via `openWakeWord` — free, fully offline, no account needed), records until
-you stop talking, transcribes with Whisper (via `faster-whisper`, runs locally),
-sends the text to `agent.py`, and speaks the reply out loud using Gemini Neural TTS.
-
-Setup:
-```powershell
-.venv\Scripts\pip install -r requirements-voice.txt
-```
-Ensure `GEMINI_API_KEY` is present in `.env`.
-
-Run it:
-```powershell
-.venv\Scripts\python -m voice.main
+```text
+======================= 98 passed, 1 warning in 18.95s =======================
 ```
 
-Say "Hey Jarvis", then your request. Tuning knobs (silence detection, model size,
-TTS voice/rate) are in `voice/config.py`, all overridable via `.env`.
+---
 
 ## License
 
-This project is licensed under the **GNU General Public License v3.0 (GPL-3.0)** — see the [LICENSE](LICENSE) file for full details.
+This project is licensed under the **GNU General Public License v3.0 (GPL-3.0)** — see the [LICENSE](LICENSE) file for details.
+Copyright (C) 2026 Abdullah.
