@@ -209,7 +209,7 @@ scanner/                Windows filesystem, Start Menu, Registry, and Store app 
 search/                 RapidFuzz indexing over installed applications
 voice/                  Voice client: wake word listener, Whisper STT, TTS, and pywebview HUD
   web/                  Next.js 15 + Three.js holographic particle orb application
-tests/                  Pytest suite (154 automated unit and integration tests)
+tests/                  Pytest suite (158 automated unit and integration tests)
 ```
 
 ---
@@ -224,7 +224,7 @@ Run the full automated test suite (including command database, safety blocks, ag
 ```
 
 ```text
-======================= 154 passed, 1 warning in 21.06s =======================
+======================= 158 passed, 1 warning in 21.21s =======================
 ```
 
 ---

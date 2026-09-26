@@ -197,6 +197,7 @@ class Transcriber:
         self._engine = getattr(config, "STT_ENGINE", "auto").lower()
         self._whisper = None
         self._sr_recognizer = None
+        self._current_lang = "en"
 
         if self._engine in ("speech_recognition", "google"):
             import speech_recognition as sr
@@ -258,7 +259,7 @@ class Transcriber:
                 print(f"[Transcriber] Whisper runtime error ({exc}); switching to SpeechRecognition...")
                 self._whisper = None  # Don't hit mkl_malloc repeatedly
 
-        # 2. Use SpeechRecognition (Google STT)
+        # 2. Use SpeechRecognition (Google STT with Bilingual Auto-Switch)
         try:
             import speech_recognition as sr
             if self._sr_recognizer is None:
@@ -266,8 +267,43 @@ class Transcriber:
 
             data_int16 = (audio * 32767).clip(-32768, 32767).astype(np.int16)
             audio_data = sr.AudioData(data_int16.tobytes(), sr_rate, 2)
-            raw_text = self._sr_recognizer.recognize_google(audio_data)
-            return ai_clean_voice_command(raw_text)
+
+            raw_text = ""
+            current_lang = getattr(self, "_current_lang", "en")
+            if current_lang == "ur":
+                try:
+                    raw_text = self._sr_recognizer.recognize_google(audio_data, language="ur-PK")
+                except Exception:
+                    raw_text = ""
+                if not raw_text:
+                    try:
+                        raw_text = self._sr_recognizer.recognize_google(audio_data, language="en-US")
+                    except Exception:
+                        raw_text = ""
+            else:
+                try:
+                    raw_text = self._sr_recognizer.recognize_google(audio_data, language="en-US")
+                except Exception:
+                    raw_text = ""
+                if not raw_text:
+                    try:
+                        raw_text = self._sr_recognizer.recognize_google(audio_data, language="ur-PK")
+                        if raw_text:
+                            self._current_lang = "ur"
+                    except Exception:
+                        raw_text = ""
+
+            if raw_text:
+                lowered_raw = raw_text.lower()
+                if any(k in lowered_raw for k in ("speak in urdu", "talk in urdu", "urdu mein baat", "switch to urdu", "urdu bolo")):
+                    self._current_lang = "ur"
+                elif any(k in lowered_raw for k in ("speak in english", "talk in english", "switch to english", "english bolo", "انگلش")):
+                    self._current_lang = "en"
+                elif re.search(r"[\u0600-\u06FF]", raw_text):
+                    self._current_lang = "ur"
+
+                return ai_clean_voice_command(raw_text)
+            return ""
         except Exception:
             return ""
 
@@ -429,12 +465,88 @@ def detect_voice_for_text(text: str) -> tuple[str, str, str]:
     roman_urdu_words = (
         r"\b(?:jee|ji|haan|nahi|nahin|hukam|madad|karta|karti|suno|kholo|chalao|band\s+karo)\b",
         r"\b(?:barha\s+do|barhao|kam\s+karo|shukriya|aapka|apka|mera|meri|kya\s+haal|kaise\s+ho)\b",
-        r"\b(?:mausam|tareekh|waqt|batao|kardo|sahih\s+hai|theek\s+hai|janab|bhai)\b",
+        r"\b(?:mausam|tareekh|waqt|batao|kardo|sahih\s+hai|theek\s+hai|janab|bhai|boli?ye|bataiye)\b",
+        r"\b(?:khidmat|tayyar|taiyar|karunga|karungi|baat\s+karo|baat\s+karunga|ab\s+se)\b",
     )
     if any(re.search(pat, lowered) for pat in roman_urdu_words):
         return urdu_voice, urdu_pitch, urdu_rate
 
     return default_voice, default_pitch, default_rate
+
+
+ROMAN_URDU_PHRASES = (
+    (re.compile(r"\bjee\s+sir\s+abdullah\b", re.I), "جی سر عبداللہ"),
+    (re.compile(r"\bji\s+sir\s+abdullah\b", re.I), "جی سر عبداللہ"),
+    (re.compile(r"\bjee\s+sir\b", re.I), "جی سر"),
+    (re.compile(r"\bji\s+sir\b", re.I), "جی سر"),
+    (re.compile(r"\bsir\s+abdullah\b", re.I), "سر عبداللہ"),
+    (re.compile(r"\ball\s+systems\s+fully\s+operational\b", re.I), "تمام سسٹمز مکمل طور پر فعال"),
+    (re.compile(r"\ball\s+systems\b", re.I), "تمام سسٹمز"),
+    (re.compile(r"\bfully\s+operational\b", re.I), "مکمل طور پر فعال"),
+    (re.compile(r"\boperational\b", re.I), "فعال"),
+    (re.compile(r"\bab\s+se\b", re.I), "اب سے"),
+    (re.compile(r"\bkar\s+sakta\s+hoon\b", re.I), "کر سکتا ہوں"),
+    (re.compile(r"\bkar\s+sakti\s+hoon\b", re.I), "کر سکتی ہوں"),
+    (re.compile(r"\bkar\s+sakte\s+hain\b", re.I), "کر سکتے ہیں"),
+    (re.compile(r"\bkar\s+diya\s+gaya\s+hai\b", re.I), "کر دیا گیا ہے"),
+    (re.compile(r"\bkar\s+di\s+gayi\s+hai\b", re.I), "کر دی گئی ہے"),
+    (re.compile(r"\bkar\s+diya\s+hai\b", re.I), "کر دیا ہے"),
+    (re.compile(r"\bkar\s+di\s+hai\b", re.I), "کر دی ہے"),
+    (re.compile(r"\bkar\s+diya\b", re.I), "کر دیا"),
+    (re.compile(r"\bkar\s+di\b", re.I), "کر دی"),
+    (re.compile(r"\bkya\s+haal\s+hai\b", re.I), "کیا حال ہے"),
+    (re.compile(r"\bkya\s+hal\s+hai\b", re.I), "کیا حال ہے"),
+    (re.compile(r"\bkya\s+chal\s+raha\s+hai\b", re.I), "کیا چل رہا ہے"),
+    (re.compile(r"\bkaise\s+ho\b", re.I), "کیسے ہو"),
+    (re.compile(r"\bkaise\s+hain\b", re.I), "کیسے ہیں"),
+    (re.compile(r"\bsab\s+theek\s+hai\b", re.I), "سب ٹھیک ہے"),
+    (re.compile(r"\bbarha\s+diya\s+gaya\s+hai\b", re.I), "بڑھا دیا گیا ہے"),
+    (re.compile(r"\bkam\s+kar\s+diya\s+gaya\s+hai\b", re.I), "کم کر دیا گیا ہے"),
+    (re.compile(r"\bsaaf\s+kar\s+diya\s+gaya\s+hai\b", re.I), "صاف کر دیا گیا ہے"),
+    (re.compile(r"\brecycle\s+bin\b", re.I), "ری سائیکل بن"),
+    (re.compile(r"\bfile\s+explorer\b", re.I), "فائل ایکسپلورر"),
+    (re.compile(r"\bkyun\s+nahi\b", re.I), "کیوں نہیں"),
+    (re.compile(r"\bkuch\s+bhi\b", re.I), "کچھ بھی"),
+)
+
+ROMAN_URDU_WORDS = {
+    "main": "میں", "mein": "میں", "hoon": "ہوں", "hun": "ہوں", "hai": "ہے", "hain": "ہیں",
+    "theek": "ٹھیک", "thek": "ٹھیک", "sahi": "صحیح", "sahih": "صحیح",
+    "aap": "آپ", "ap": "آپ", "tum": "تم", "tumhen": "تمہیں", "tumhein": "تمہیں",
+    "aapka": "آپ کا", "apka": "آپ کا", "aapki": "آپ کی", "apki": "آپ کی", "aapke": "آپ کے", "apke": "آپ کے",
+    "mera": "میرا", "meri": "میری", "mere": "میرے",
+    "yeh": "یہ", "ye": "یہ", "woh": "وہ", "wo": "وہ", "is": "اس", "us": "اس",
+    "ka": "کا", "ki": "کی", "ke": "کے", "ko": "کو", "se": "سے", "par": "پر",
+    "aur": "اور", "bhi": "بھی", "to": "تو", "liye": "لیے", "lekin": "لیکن",
+    "baat": "بات", "karunga": "کروں گا", "karungi": "کروں گی", "karo": "کرو", "karna": "کرنا",
+    "boliye": "بولیے", "bataiye": "بتائیے", "batao": "بتاؤ", "suno": "سنو", "dikhao": "دکھاؤ", "kholo": "کھولو",
+    "chalao": "چلاؤ", "chal": "چل", "raha": "رہا", "rahi": "رہی", "rahe": "رہے",
+    "sakta": "سکتا", "sakti": "سکتی", "sakte": "سکتے", "saktay": "سکتے",
+    "madad": "مدد", "khidmat": "خدمت", "tayyar": "تیار", "taiyar": "تیار", "hamesha": "ہمیشہ",
+    "kya": "کیا", "kia": "کیا", "kaise": "کیسے", "kaisa": "کیسا", "kaisi": "کیسی", "kaun": "کون", "kon": "کون",
+    "ab": "اب", "aaj": "آج", "kal": "کل", "waqt": "وقت", "tareekh": "تاریخ",
+    "urdu": "اردو", "english": "انگلش",
+    "volume": "والیم", "awaz": "آواز", "aawaz": "آواز", "barhao": "بڑھاؤ", "barha": "بڑھا",
+    "kam": "کم", "band": "بند", "saaf": "صاف", "tamam": "تمام", "windows": "ونڈوز"
+}
+
+
+def convert_roman_urdu_to_script(text: str) -> str:
+    """Converts Roman Urdu words and phrases into native Urdu Nastaliq script
+    so Edge TTS's Urdu voice (ur-PK-AsadNeural) pronounces every word with authentic
+    native Pakistani pronunciation instead of English phonetics."""
+    if not text:
+        return ""
+    result = text
+    for pat, rep in ROMAN_URDU_PHRASES:
+        result = pat.sub(rep, result)
+
+    def _replace_word(m: re.Match) -> str:
+        w = m.group(0).lower()
+        return ROMAN_URDU_WORDS.get(w, m.group(0))
+
+    result = re.sub(r"[a-zA-Z]+", _replace_word, result)
+    return result
 
 
 class Speaker:
@@ -504,7 +616,8 @@ class Speaker:
                 return False
 
             voice, pitch, rate = detect_voice_for_text(clean_text)
-
+            if "Asad" in voice or "ur-" in voice or re.search(r"[\u0600-\u06FF]", clean_text):
+                clean_text = convert_roman_urdu_to_script(clean_text)
 
             async def _download_audio(content: str) -> bytes:
                 comm = edge_tts.Communicate(content, voice, pitch=pitch, rate=rate)

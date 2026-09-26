@@ -1,9 +1,14 @@
-"""Tests for Bilingual (English & Urdu / Roman Urdu / Hinglish) voice and agent intelligence."""
-from unittest.mock import patch
+"""Tests for Bilingual (English & Urdu / Roman Urdu / Hinglish) voice, pronunciation, and agent intelligence."""
+from unittest.mock import patch, MagicMock
 import pytest
 
 from agent import check_fast_path
-from voice.pipeline import detect_voice_for_text, enforce_status_prefix
+from voice.pipeline import (
+    detect_voice_for_text,
+    enforce_status_prefix,
+    convert_roman_urdu_to_script,
+    Transcriber,
+)
 from voice import config
 
 
@@ -38,6 +43,37 @@ class TestVoiceAutoSwitch:
         assert rate == "+0%"
 
 
+class TestRomanToUrduScriptTransliteration:
+    """Ensures Roman Urdu is converted into authentic Urdu Nastaliq script
+    so Edge TTS's ur-PK-AsadNeural pronounces words with 100% native Pakistani pronunciation."""
+
+    def test_transliterate_salutation_and_verbs(self) -> None:
+        input_text = "Jee Sir Abdullah, ab se main Urdu mein baat karunga. Boliye, aap ke liye kya madad kar sakta hoon?"
+        res = convert_roman_urdu_to_script(input_text)
+        assert "جی سر عبداللہ" in res
+        assert "اب سے" in res
+        assert "میں" in res
+        assert "اردو" in res
+        assert "بات کروں گا" in res
+        assert "مدد" in res
+        assert "کر سکتا ہوں" in res
+
+    def test_transliterate_service_greeting(self) -> None:
+        input_text = "Jee Sir Abdullah, main hamesha aap ki khidmat ke liye tayyar hoon. Bataiye, kya karna hai?"
+        res = convert_roman_urdu_to_script(input_text)
+        assert "جی سر عبداللہ" in res
+        assert "ہمیشہ" in res
+        assert "خدمت" in res
+        assert "تیار ہوں" in res
+        assert "بتائیے" in res
+
+    def test_english_text_untouched(self) -> None:
+        input_text = "Positive sir, Google Chrome is ready."
+        res = convert_roman_urdu_to_script(input_text)
+        assert "Positive" in res
+        assert "Google Chrome" in res
+
+
 class TestBilingualStatusPrefix:
     """Ensures enforce_status_prefix preserves Urdu polite greetings while
     still enforcing 'Positive sir,' on English outputs."""
@@ -64,61 +100,72 @@ class TestBilingualStatusPrefix:
 
 
 class TestBilingualFastPaths:
-    """Verifies that check_fast_path provides 0ms responses for common Urdu commands."""
+    """Verifies that check_fast_path provides 0ms responses with authentic Urdu script."""
+
+    def test_language_mode_switching(self) -> None:
+        res_ur = check_fast_path("speak in urdu")
+        assert res_ur is not None
+        assert "جی سر عبداللہ" in res_ur
+        assert "اردو" in res_ur
+
+        res_en = check_fast_path("speak in english")
+        assert res_en is not None
+        assert "Positive sir" in res_en
+        assert "English" in res_en
 
     def test_urdu_greetings(self) -> None:
         res1 = check_fast_path("kya haal hai")
         assert res1 is not None
-        assert "Jee Sir Abdullah" in res1
-        assert "theek" in res1
+        assert "جی سر عبداللہ" in res1
+        assert "ٹھیک" in res1
 
         res2 = check_fast_path("kaise ho jarvis")
         assert res2 is not None
-        assert "Jee Sir Abdullah" in res2
+        assert "جی سر عبداللہ" in res2
 
         res3 = check_fast_path("tum kaun ho")
         assert res3 is not None
-        assert "JARVIS" in res3
+        assert "جاروس" in res3
 
     def test_urdu_time_and_date(self) -> None:
         res_time = check_fast_path("kya time hai")
         assert res_time is not None
-        assert "Jee Sir Abdullah, is waqt" in res_time
+        assert "جی سر عبداللہ، اس وقت" in res_time
 
         res_waqt = check_fast_path("waqt batao")
         assert res_waqt is not None
-        assert "Jee Sir Abdullah, is waqt" in res_waqt
+        assert "جی سر عبداللہ، اس وقت" in res_waqt
 
         res_date = check_fast_path("aaj kya tareekh hai")
         assert res_date is not None
-        assert "Jee Sir Abdullah, aaj" in res_date
+        assert "جی سر عبداللہ، آج" in res_date
 
     @patch("actions.system.volume_up")
     def test_urdu_volume_up(self, mock_vol_up) -> None:
         res = check_fast_path("awaz barhao")
         assert res is not None
-        assert "volume barha diya" in res
+        assert "والیم بڑھا دیا گیا ہے" in res
         mock_vol_up.assert_called_once()
 
     @patch("actions.system.volume_down")
     def test_urdu_volume_down(self, mock_vol_down) -> None:
         res = check_fast_path("awaz kam karo")
         assert res is not None
-        assert "volume kam kar diya" in res
+        assert "والیم کم کر دیا گیا ہے" in res
         mock_vol_down.assert_called_once()
 
     @patch("actions.system.volume_mute")
     def test_urdu_volume_mute(self, mock_mute) -> None:
         res = check_fast_path("awaz band karo")
         assert res is not None
-        assert "audio mute" in res
+        assert "آواز بند کر دی گئی ہے" in res
         mock_mute.assert_called_once()
 
     @patch("actions.system._empty_recycle_bin")
     def test_urdu_recycle_bin(self, mock_empty) -> None:
         res = check_fast_path("recycle bin saaf karo")
         assert res is not None
-        assert "Recycle Bin saaf" in res
+        assert "ری سائیکل بن صاف" in res
         mock_empty.assert_called_once()
 
     def test_english_commands_unaffected(self) -> None:

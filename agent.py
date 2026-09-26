@@ -43,7 +43,14 @@ Operational Guidelines:
 5. Drive & File Explorer Navigation: Sir Abdullah's computer has drives C:, D:, E:, and F:. When asked to open or explore any drive (e.g. 'open drive F', 'drive C', 'F drive'), open that drive directly using `manage_files(operation='open', path='F:\\\\')`.
 6. Speech Recognition Intelligence: User commands are spoken via microphone. Intelligently deduce and fulfill common speech-to-text mishearings (e.g. 'open the drive app' means 'open drive F' or 'open File Explorer'; 'drive see' means 'drive C'; 'APV4' means 'IPv4') without complaining.
 7. Available Actions: You possess a vast, state-of-the-art arsenal of desktop automation tools: launching/closing applications, opening specific Windows Settings pages, launching administrative utilities (Task Manager, Control Panel, Device Manager, Resource Monitor), managing drives (C:, D:, E:, F:), listing and terminating processes by PID, searching and reading files, compressing/extracting zip archives, creating desktop shortcuts, downloading files from the web, typing text directly into active windows, flushing DNS cache, scheduling/cancelling PC shutdown timers, listing audio devices, setting timers, taking desktop scratchpad notes, performing fast math calculations, emptying the Recycle Bin, setting screen brightness, querying Wi-Fi and network diagnostics, window management (minimizing, restoring, snapping), weather queries, fact summaries via Wikipedia and DuckDuckGo, volume/media control, clipboard, screenshot, keyboard/mouse automation, and running custom shell commands.
-8. Bilingual Language Intelligence (English & Urdu / Roman Urdu / Hinglish): You are fluently bilingual in English and Urdu (including Roman Urdu and Hinglish). If Sir Abdullah addresses you in English, respond in English with "Positive sir, " or "Negative sir, ". If Sir Abdullah addresses you in Urdu, Roman Urdu, or Hinglish (e.g., 'kya haal hai', 'Chrome kholo', 'volume barha do', 'aaj mausam kaisa hai', 'screen par kya chal raha hai'), respond naturally in polite, respectful conversational Urdu or Roman Urdu (e.g. starting with "Jee Sir Abdullah, " or "Jee sir, "). Always call the corresponding desktop automation tools immediately regardless of which language the command is spoken in.
+8. Bilingual Language Intelligence (English & Urdu / Roman Urdu / Hinglish): You are fluently bilingual in English and authentic Urdu.
+- If Sir Abdullah addresses you in English, respond in English with "Positive sir, " or "Negative sir, ".
+- If Sir Abdullah addresses you in Urdu, Roman Urdu, or Hinglish (e.g., 'kya haal hai', 'Chrome kholo', 'volume barha do', 'aaj mausam kaisa hai', 'screen par kya chal raha hai', 'urdu mein baat karo', 'speak in urdu'), you MUST ALWAYS respond in proper Urdu script (نستعلیق / اردو رسم الخط), starting with "جی سر عبداللہ، " or "جی سر، ".
+- NEVER respond in Roman Urdu (English letters) when speaking Urdu; always write in proper Urdu script so that the neural speech synthesizer pronounces every word with authentic native Pakistani pronunciation and flawless accent.
+- English application names and technical terms (e.g., Google Chrome, YouTube, File Explorer, VS Code, Wi-Fi, port) should remain in English within the Urdu script sentence (e.g., "جی سر عبداللہ، میں نے Google Chrome کھول دیا ہے۔").
+- If Sir Abdullah says "speak in urdu" or "urdu mein baat karo", acknowledge in Urdu script: "جی سر عبداللہ، اب سے میں آپ سے اردو میں بات کروں گا۔ فرمائیے، میں آپ کی کیا مدد کر سکتا ہوں؟".
+- If Sir Abdullah says "speak in english", acknowledge in English: "Positive sir, switching back to English. Standing by for your commands."
+- Always call the corresponding desktop automation tools immediately regardless of which language the command is spoken in.
 """
 
 
@@ -963,7 +970,14 @@ def check_fast_path(text: str) -> Optional[str]:
     if lowered in ("how are you", "how are you doing", "how do you do"):
         return "All systems functioning at peak efficiency, sir. How may I be of service?"
 
-    # 0.1 Bilingual (Urdu / Roman Urdu / Hinglish) greetings and status checks:
+    # 0.1 Language mode switching fast-paths:
+    if lowered in ("speak in urdu", "talk in urdu", "switch to urdu", "urdu mein baat karo", "urdu bolo", "urdu mein bolo") or any(k in lowered for k in ("اردو میں بات کرو", "اردو بولو")):
+        return "جی سر عبداللہ، اب سے میں آپ سے اردو میں بات کروں گا۔ فرمائیے، میں آپ کی کیا مدد کر سکتا ہوں؟"
+
+    if lowered in ("speak in english", "talk in english", "switch to english", "english bolo", "english mein baat karo") or any(k in lowered for k in ("انگلش میں بات کرو", "انگلش بولو")):
+        return "Positive sir, switching back to English. Standing by for your commands."
+
+    # 0.2 Bilingual (Urdu / Roman Urdu / Hinglish) greetings and status checks:
     if lowered in (
         "kya haal hai",
         "kaise ho",
@@ -976,16 +990,16 @@ def check_fast_path(text: str) -> Optional[str]:
         "kia hal hai",
         "kia haal hai",
     ) or any(k in lowered for k in ("kya haal", "kaise ho", "kya chal raha", "sab theek hai")):
-        return "Jee Sir Abdullah, main theek hoon aur all systems fully operational hain. Main aapki kya madad kar sakta hoon?"
+        return "جی سر عبداللہ، میں بالکل ٹھیک ہوں اور تمام سسٹمز فعال ہیں۔ فرمائیے، میں آپ کی کیا مدد کر سکتا ہوں؟"
 
     if lowered in ("tum kaun ho", "kaun ho tum", "apna naam batao", "aap kon hain", "kon ho tum"):
-        return "Jee Sir Abdullah, main JARVIS hoon, aapka personal AI assistant."
+        return "جی سر عبداللہ، میں جاروس ہوں، آپ کا ذاتی اے آئی اسسٹنٹ۔"
 
     if lowered in ("kya kar rahe ho", "kya kar sakte ho", "tum kya kar sakte ho"):
-        return "Jee Sir Abdullah, main aapke system commands, applications, media, aur desktop automation ko run karne ke liye taiyar hoon."
+        return "جی سر عبداللہ، میں آپ کے ڈیسک ٹاپ کے تمام کام، ایپلی کیشنز، والیم، اور سیٹنگز کو کنٹرول کرنے کے لیے تیار ہوں۔"
 
     if any(k in lowered for k in ("کیا حال ہے", "کیسے ہو", "سب ٹھیک ہے")):
-        return "جی سر عبداللہ، میں بالکل ٹھیک ہوں اور تمام سسٹمز فعال ہیں۔"
+        return "جی سر عبداللہ، میں بالکل ٹھیک ہوں اور تمام سسٹمز فعال ہیں۔ فرمائیے، میں آپ کی کیا مدد کر سکتا ہوں؟"
     if any(k in lowered for k in ("کون ہو تم", "تم کون ہو", "اپنا نام بتاؤ")):
         return "جی سر عبداللہ، میں جاروس ہوں، آپ کا ذاتی اے آئی اسسٹنٹ۔"
 
@@ -1007,14 +1021,14 @@ def check_fast_path(text: str) -> Optional[str]:
     if (re.search(r"\b(time|what time|waqt)\b", lowered) and any(k in lowered for k in ("what", "tell", "current", "now", "kya", "batao", "kia"))) or any(k in lowered for k in ("وقت کیا ہوا", "ٹائم کیا ہوا")):
         now_str = datetime.now().strftime("%I:%M %p")
         if any(re.search(pat, lowered) for pat in (r"\bwaqt\b", r"\bbatao\b", r"\bkya\b", r"\bkia\b", r"وقت", r"ٹائم")):
-            return f"Jee Sir Abdullah, is waqt {now_str} hue hain."
+            return f"جی سر عبداللہ، اس وقت {now_str} ہوئے ہیں۔"
         return f"Positive sir, the current time is {now_str}."
 
     # 3. Date queries: "what is today's date", "what day is today", "aaj kya tareekh hai"
     if (re.search(r"\b(date|what day|tareekh)\b", lowered) and any(k in lowered for k in ("what", "today", "current", "kya", "aaj", "konsa", "kia"))) or any(k in lowered for k in ("آج کیا تاریخ ہے", "تاریخ کیا ہے")):
         today_str = datetime.now().strftime("%A, %B %d, %Y")
         if any(re.search(pat, lowered) for pat in (r"\btareekh\b", r"\baaj\b", r"\bkonsa\b", r"\bkia\b", r"\bkya\b", r"تاریخ")):
-            return f"Jee Sir Abdullah, aaj {today_str} hai."
+            return f"جی سر عبداللہ، آج {today_str} ہے۔"
         return f"Positive sir, today is {today_str}."
 
     # 4. Battery queries: "how much battery", "battery percentage", "battery status"
@@ -1031,19 +1045,19 @@ def check_fast_path(text: str) -> Optional[str]:
             from actions.system import volume_mute
             volume_mute()
             if any(k in lowered for k in ("awaz", "aawaz", "band", "آواز")):
-                return "Jee Sir Abdullah, audio mute kar di gayi hai."
+                return "جی سر عبداللہ، آواز بند کر دی گئی ہے۔"
             return "Positive sir, audio mute toggled."
         if any(k in lowered for k in ("up", "increase", "higher", "raise", "boost", "barhao", "barha do", "zyada karo", "tez karo", "بڑھاؤ")):
             from actions.system import volume_up
             volume_up()
             if any(k in lowered for k in ("awaz", "aawaz", "barha", "tez", "zyada", "آواز")):
-                return "Jee Sir Abdullah, volume barha diya gaya hai."
+                return "جی سر عبداللہ، والیم بڑھا دیا گیا ہے۔"
             return "Positive sir, volume increased."
         if any(k in lowered for k in ("down", "decrease", "lower", "reduce", "kam karo", "kam kardo", "dheema karo", "کم کرو")):
             from actions.system import volume_down
             volume_down()
             if any(k in lowered for k in ("awaz", "aawaz", "kam", "dheema", "کم کرو", "آواز")):
-                return "Jee Sir Abdullah, volume kam kar diya gaya hai."
+                return "جی سر عبداللہ، والیم کم کر دیا گیا ہے۔"
             return "Positive sir, volume decreased."
 
     # 6. Recycle bin: "empty recycle bin", "clean recycle bin", "empty bin", "recycle bin saaf karo"
@@ -1051,7 +1065,7 @@ def check_fast_path(text: str) -> Optional[str]:
         from actions.system import _empty_recycle_bin
         _empty_recycle_bin()
         if any(k in lowered for k in ("saaf", "kachra")):
-            return "Jee Sir Abdullah, Recycle Bin saaf kar diya gaya hai."
+            return "جی سر عبداللہ، ری سائیکل بن صاف کر دیا گیا ہے۔"
         return "Positive sir, the Recycle Bin has been emptied."
 
     # 7. Desktop window management:
@@ -1062,7 +1076,7 @@ def check_fast_path(text: str) -> Optional[str]:
             shell = comtypes.client.CreateObject("Shell.Application")
             shell.MinimizeAll()
             if any(k in lowered for k in ("karo", "dikhao")):
-                return "Jee Sir Abdullah, tamam windows minimize kar di gayi hain."
+                return "جی سر عبداللہ، تمام ونڈوز منیمائز کر دی گئی ہیں۔"
             return "Positive sir, all windows have been minimized."
         except Exception:
             pass
