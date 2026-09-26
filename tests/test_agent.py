@@ -416,5 +416,50 @@ def test_conversation_session_and_status_prefix() -> None:
     assert enforce_status_prefix(standby) == standby
 
 
+def test_ip_address_fast_path_and_explanations() -> None:
+    from agent import check_fast_path
+
+    # 1. Direct value queries return actual IP addresses
+    with patch("agent.get_ip_address") as mock_get_ip:
+        mock_get_ip.return_value = "Positive sir, your local private IPv4 address is 192.168.1.11."
+        res_v4 = check_fast_path("Jarvis tell me what is my ipv4 address")
+        assert res_v4 is not None
+        assert "192.168.1.11" in res_v4
+        mock_get_ip.assert_called_with(ip_type="private")
+
+    with patch("agent.get_ip_address") as mock_get_ip:
+        mock_get_ip.return_value = "Positive sir, your public IP address is 58.65.223.234."
+        res_pub = check_fast_path("now tell me what is my public IP address")
+        assert res_pub is not None
+        assert "58.65.223.234" in res_pub
+        mock_get_ip.assert_called_with(ip_type="public")
+
+    # 2. Methodology/Process/Command queries return explanation of how/commands used, NOT repeated IP value
+    res_how = check_fast_path("tell me how do you find my public IP")
+    assert res_how is not None
+    assert "api.ipify.org" in res_how or "ifconfig.me" in res_how
+    assert "curl" in res_how or "Invoke-RestMethod" in res_how
+
+    res_proc = check_fast_path("I mean what's the process you follow to find my public IP")
+    assert res_proc is not None
+    assert "ifconfig.me" in res_proc or "api.ipify.org" in res_proc
+
+    res_cmd = check_fast_path("I am saying what commands you use to find the IP address of my system")
+    assert res_cmd is not None
+    assert "ipconfig" in res_cmd
+    assert "curl" in res_cmd or "ifconfig" in res_cmd
+
+    # 3. Bilingual / Roman Urdu query for methodology
+    res_ur = check_fast_path("ip kaise pata kiya")
+    assert res_ur is not None
+    assert "Jee Sir Abdullah" in res_ur
+    assert "ipconfig" in res_ur
+
+    # 4. Pure conceptual queries must NOT be intercepted by get_ip_address (fall through to LLM)
+    assert check_fast_path("what is ipv4") is None
+    assert check_fast_path("what is the difference between public and private IP") is None
+
+
+
 
 

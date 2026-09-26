@@ -55,6 +55,9 @@ Operational Guidelines:
 - If Sir Abdullah says "speak in urdu" or "urdu mein baat karo", acknowledge warmly in Hinglish: "Jee Sir Abdullah, ab se main aapse Roman Urdu mein baat karunga. Farmaiye, kya hukum hai?".
 - If Sir Abdullah says "speak in english", acknowledge in English: "Positive sir, switching back to English. Standing by for your commands."
 - Always call the corresponding desktop automation tools immediately regardless of which language the command is spoken in.
+9. Network & IP Addressing Explanations:
+- When asked for your IP: report local private IP or public WAN IP concisely.
+- When asked HOW you find the IP, what process you follow, or what commands you use: Explain clearly and concisely: For your local private IPv4 address, you inspect the local network routing table (in Windows terminal, the command is 'ipconfig'). For your public external IP address, you query an external routing endpoint such as 'api.ipify.org' (in Windows PowerShell or terminal, the command is 'curl ifconfig.me' or 'Invoke-RestMethod https://api.ipify.org').
 """
 
 
@@ -1019,12 +1022,58 @@ def check_fast_path(text: str) -> Optional[str]:
     if any(k in lowered for k in ("کون ہو تم", "تم کون ہو", "اپنا نام بتاؤ")):
         return "Jee Sir Abdullah, main JARVIS hoon, aapka personal AI assistant. Batayein, kya hukum hai?"
 
-    # 1. IP Address queries: "what is my public ip", "what is my private ip", "what is my ip", etc.
-    # Exclude conceptual questions like "what is ipv4" or "explain ipv4"
+    # 1.0 IP Methodology, Process, and Command Explanation:
+    # Handles: "tell me how do you find my public IP", "what's the process you follow to find my public IP",
+    # "what commands you use to find the IP address of my system", "how did you get my ip", etc.
+    ip_method_keywords = (
+        "how do you find", "how did you find", "how you find",
+        "how do you get", "how did you get", "how you get",
+        "how do you know", "how do you check", "how can you check", "how to check", "how to find",
+        "process", "method", "steps", "procedure",
+        "what command", "which command", "commands you use", "commands do you use",
+        "command you use", "command do you use", "what commands", "which commands",
+        "kaise pata", "kaise nikal", "tarika", "tareeqa", "konsi command", "kounsi command"
+    )
+    if re.search(r"\b(ip|ipv4|ipv6|address)\b", lowered) and any(k in lowered for k in ip_method_keywords):
+        if any(k in lowered for k in ("kaise", "tarika", "tareeqa", "konsi command", "kounsi command")):
+            if re.search(r"\b(?:public|external|wan|internet)\b", lowered):
+                return (
+                    "Jee Sir Abdullah, public IP maloom karne ke liye main external endpoint query karta hoon, "
+                    "aur Windows command 'curl ifconfig.me' ya 'Invoke-RestMethod https://api.ipify.org' use hoti hai."
+                )
+            if re.search(r"\b(?:private|local|internal|lan|ipv4)\b", lowered):
+                return "Jee Sir Abdullah, local private IPv4 address ke liye Windows ki standard command 'ipconfig' hai."
+            return (
+                "Jee Sir Abdullah, local private IP ke liye Windows command 'ipconfig' hai, "
+                "aur public external IP ke liye 'curl ifconfig.me' use hoti hai."
+            )
+
+        if re.search(r"\b(?:public|external|wan|global|internet)\b", lowered):
+            return (
+                "Positive sir, to find your public IP address, I query an external routing endpoint "
+                "such as api.ipify.org or ifconfig.me. In Windows Command Prompt or PowerShell, "
+                "the equivalent command is: curl ifconfig.me or Invoke-RestMethod https://api.ipify.org."
+            )
+        if re.search(r"\b(?:private|local|internal|lan|ipv4)\b", lowered):
+            return (
+                "Positive sir, to find your local private IPv4 address, I inspect your network interface routing table. "
+                "In Windows Command Prompt or PowerShell, the standard command is: ipconfig."
+            )
+        return (
+            "Positive sir, to find your local private IP, the Windows command is 'ipconfig'. "
+            "To find your public external IP, the command is 'curl ifconfig.me' or 'Invoke-RestMethod https://api.ipify.org'."
+        )
+
+    # 1.1 IP Address value queries: "what is my public ip", "what is my private ip", "what is my ip", etc.
+    # Exclude conceptual/process questions like "how to find", "what is ipv4", "difference", "process", "command"
     if re.search(r"\b(ip|ipv4|ipv6|address)\b", lowered):
-        is_my_ip = any(k in lowered for k in ("my", "local", "private", "public", "external", "wan", "machine", "this pc", "address"))
-        is_not_explanation = not any(k in lowered for k in ("what is ipv", "difference", "explain", "meaning", "definition"))
-        if is_my_ip and is_not_explanation:
+        is_my_ip = any(k in lowered for k in ("my", "local", "private", "public", "external", "wan", "machine", "this pc", "current ip")) or "what is" in lowered or "what's" in lowered or "tell me" in lowered
+        is_explanation = any(k in lowered for k in (
+            "what is ipv", "difference", "explain", "meaning", "definition",
+            "how", "process", "command", "commands", "method", "steps", "procedure",
+            "kaise", "tarika", "tareeqa", "why", "detail"
+        ))
+        if is_my_ip and not is_explanation:
             if re.search(r"\b(?:public|external|wan|global|internet)\b", lowered):
                 return get_ip_address(ip_type="public")
             if re.search(r"\b(?:private|local|internal|lan)\b", lowered):
@@ -1195,10 +1244,6 @@ def check_fast_path(text: str) -> Optional[str]:
     # Internet connectivity: e.g. "check my internet", "test internet connectivity"
     if any(k in lowered for k in ("check my internet", "test internet connectivity", "is internet working")):
         return execute_windows_command(text)
-
-    # Specific local IP lookup: e.g. "what is my local ip", "show my local ip", "private ip"
-    if any(k in lowered for k in ("local ip", "private ip", "internal ip")):
-        return execute_windows_command("what is my IP")
 
     # 18. Screen perception & visual QA fast-paths:
     if re.search(r"\b(?:what(?:'s|\s+is)\s+on\s+my\s+screen|describe\s+(?:my\s+)?screen|look\s+at\s+my\s+screen|what\s+do\s+you\s+see\s+on\s+my\s+screen|screen\s+par\s+kya\s+hai|screen\s+dikhao|screen\s+check\s+karo)\b", lowered) or any(k in lowered for k in ("سکرین پر کیا ہے", "سکرین دیکھو")):
