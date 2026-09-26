@@ -459,6 +459,31 @@ def test_ip_address_fast_path_and_explanations() -> None:
     assert check_fast_path("what is ipv4") is None
     assert check_fast_path("what is the difference between public and private IP") is None
 
+    # 5. MAC Address queries MUST return MAC address and NOT fall into IP address lookup!
+    with patch("agent.get_mac_address") as mock_mac:
+        mock_mac.return_value = "Positive sir, your physical MAC address for Ethernet is FC-AA-14-E0-E9-4D."
+        res_mac1 = check_fast_path("Ok Jarvis now tell me what is my Mac address")
+        assert res_mac1 is not None
+        assert "FC-AA-14-E0-E9-4D" in res_mac1
+        assert "public IP" not in res_mac1
+
+        res_mac2 = check_fast_path("I said what is my Mac address")
+        assert res_mac2 is not None
+        assert "FC-AA-14-E0-E9-4D" in res_mac2
+        assert "public IP" not in res_mac2
+
+    # 6. MAC methodology query
+    res_mac_cmd = check_fast_path("what commands you use to find the MAC address")
+    assert res_mac_cmd is not None
+    assert "getmac" in res_mac_cmd
+
+    # 7. Gateway query
+    with patch("agent.get_default_gateway") as mock_gw:
+        mock_gw.return_value = "Positive sir, your default network gateway is 192.168.1.1."
+        res_gw = check_fast_path("what is my default gateway")
+        assert res_gw is not None
+        assert "192.168.1.1" in res_gw
+
 
 
 

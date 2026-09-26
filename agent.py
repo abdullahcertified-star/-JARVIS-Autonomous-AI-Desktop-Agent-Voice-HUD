@@ -55,9 +55,11 @@ Operational Guidelines:
 - If Sir Abdullah says "speak in urdu" or "urdu mein baat karo", acknowledge warmly in Hinglish: "Jee Sir Abdullah, ab se main aapse Roman Urdu mein baat karunga. Farmaiye, kya hukum hai?".
 - If Sir Abdullah says "speak in english", acknowledge in English: "Positive sir, switching back to English. Standing by for your commands."
 - Always call the corresponding desktop automation tools immediately regardless of which language the command is spoken in.
-9. Network & IP Addressing Explanations:
-- When asked for your IP: report local private IP or public WAN IP concisely.
-- When asked HOW you find the IP, what process you follow, or what commands you use: Explain clearly and concisely: For your local private IPv4 address, you inspect the local network routing table (in Windows terminal, the command is 'ipconfig'). For your public external IP address, you query an external routing endpoint such as 'api.ipify.org' (in Windows PowerShell or terminal, the command is 'curl ifconfig.me' or 'Invoke-RestMethod https://api.ipify.org').
+9. Network, IP, & Hardware Addressing Explanations:
+- When asked for your IP: call get_ip_address() to report local private IP or public WAN IP concisely.
+- When asked for your MAC address: call get_mac_address() to report the physical hardware MAC address of the active network adapter (e.g. Ethernet / Wi-Fi).
+- When asked for your default gateway: call get_default_gateway().
+- When asked HOW you find network addresses or what commands you use: Explain clearly and concisely: For local private IPv4, the Windows command is 'ipconfig'. For public external IP, the command is 'curl ifconfig.me' or 'Invoke-RestMethod https://api.ipify.org'. For physical MAC address, the command is 'getmac /v'.
 """
 
 
@@ -334,6 +336,47 @@ def get_ip_address(ip_type: str = "all") -> str:
         if public_ip:
             return f"Positive sir, your public IP is {public_ip}, and your local private IP is {local_ip}."
         return f"Positive sir, your local private IPv4 address is {local_ip}."
+
+
+def get_mac_address(interface: str = "") -> str:
+    """Get the physical hardware MAC address of the computer's network adapters (e.g. Ethernet, Wi-Fi)."""
+    import psutil
+    try:
+        addrs = psutil.net_if_addrs()
+        primary_mac = None
+        mac_results = []
+        for iface, addr_list in addrs.items():
+            if interface and interface.lower() not in iface.lower():
+                continue
+            for a in addr_list:
+                if a.family not in (socket.AF_INET, socket.AF_INET6) and a.address:
+                    clean_mac = a.address.strip()
+                    if re.match(r"^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$", clean_mac):
+                        is_virtual = any(v in iface.lower() for v in ("vmware", "virtual", "vbox", "loopback", "vethernet", "pseudo"))
+                        if not is_virtual and not primary_mac:
+                            primary_mac = (iface, clean_mac)
+                        mac_results.append((iface, clean_mac, is_virtual))
+
+        if primary_mac:
+            return f"Positive sir, your physical MAC address for {primary_mac[0]} is {primary_mac[1]}."
+        elif mac_results:
+            first = mac_results[0]
+            return f"Positive sir, your MAC address for {first[0]} is {first[1]}."
+        return "Negative sir, unable to determine your physical MAC address."
+    except Exception as exc:
+        return f"Negative sir, could not retrieve MAC address: {exc}"
+
+
+def get_default_gateway() -> str:
+    """Get the computer's local default network gateway IP address."""
+    try:
+        res = subprocess.run(["ipconfig"], capture_output=True, text=True, timeout=3)
+        gw = re.search(r"Default Gateway[ .:]+(?:[a-f0-9:]+%\d+\s+)?([\d\.]+)", res.stdout, re.IGNORECASE)
+        if gw and gw.group(1).count(".") == 3:
+            return f"Positive sir, your default network gateway is {gw.group(1)}."
+        return "Negative sir, unable to determine your default network gateway."
+    except Exception as exc:
+        return f"Negative sir, could not retrieve gateway: {exc}"
 
 
 def manage_desktop_window(action: str) -> str:
@@ -900,6 +943,8 @@ ALL_TOOLS = [
     get_wifi_status,
     network_ping,
     get_ip_address,
+    get_mac_address,
+    get_default_gateway,
     network_flush_dns,
     manage_desktop_window,
     launch_system_utility,
@@ -1022,6 +1067,19 @@ def check_fast_path(text: str) -> Optional[str]:
     if any(k in lowered for k in ("کون ہو تم", "تم کون ہو", "اپنا نام بتاؤ")):
         return "Jee Sir Abdullah, main JARVIS hoon, aapka personal AI assistant. Batayein, kya hukum hai?"
 
+    # 0.9 MAC Address queries: "what is my mac address", "tell me my mac address", "what's my mac", "mac address"
+    if re.search(r"\bmac\s+(?:hardware\s+)?address\b|\bwhat(?:'s|\s+is)\s+(?:my\s+)?mac\b|\bmy\s+mac\b", lowered) or clean_alpha in ("macaddress", "whatismymacaddress", "mymacaddress", "macaddr"):
+        if any(k in lowered for k in ("how", "process", "command", "commands", "method", "steps", "kaise")):
+            return (
+                "Positive sir, to find your physical MAC address, I inspect your network adapter hardware bindings. "
+                "In Windows Command Prompt or PowerShell, the command is 'getmac /v' or 'getmac'."
+            )
+        return get_mac_address()
+
+    # 0.95 Default Gateway queries: "what is my default gateway", "what is my gateway", "gateway address"
+    if re.search(r"\b(?:default\s+)?gateway\b", lowered) and any(k in lowered for k in ("what", "tell", "show", "my", "check", "ip", "address")):
+        return get_default_gateway()
+
     # 1.0 IP Methodology, Process, and Command Explanation:
     # Handles: "tell me how do you find my public IP", "what's the process you follow to find my public IP",
     # "what commands you use to find the IP address of my system", "how did you get my ip", etc.
@@ -1034,7 +1092,11 @@ def check_fast_path(text: str) -> Optional[str]:
         "command you use", "command do you use", "what commands", "which commands",
         "kaise pata", "kaise nikal", "tarika", "tareeqa", "konsi command", "kounsi command"
     )
-    if re.search(r"\b(ip|ipv4|ipv6|address)\b", lowered) and any(k in lowered for k in ip_method_keywords):
+    is_ip_query = (
+        bool(re.search(r"\b(ip|ipv4|ipv6)\b|\bip\s+address\b", lowered))
+        and not bool(re.search(r"\b(mac|physical|email|home|street|postal)\b", lowered))
+    )
+    if is_ip_query and any(k in lowered for k in ip_method_keywords):
         if any(k in lowered for k in ("kaise", "tarika", "tareeqa", "konsi command", "kounsi command")):
             if re.search(r"\b(?:public|external|wan|internet)\b", lowered):
                 return (
@@ -1066,7 +1128,7 @@ def check_fast_path(text: str) -> Optional[str]:
 
     # 1.1 IP Address value queries: "what is my public ip", "what is my private ip", "what is my ip", etc.
     # Exclude conceptual/process questions like "how to find", "what is ipv4", "difference", "process", "command"
-    if re.search(r"\b(ip|ipv4|ipv6|address)\b", lowered):
+    if is_ip_query:
         is_my_ip = any(k in lowered for k in ("my", "local", "private", "public", "external", "wan", "machine", "this pc", "current ip")) or "what is" in lowered or "what's" in lowered or "tell me" in lowered
         is_explanation = any(k in lowered for k in (
             "what is ipv", "difference", "explain", "meaning", "definition",
