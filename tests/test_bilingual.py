@@ -29,13 +29,13 @@ class TestVoiceAutoSwitch:
 
     def test_roman_urdu_selected(self) -> None:
         voice, pitch, rate = detect_voice_for_text("Jee Sir Abdullah, volume barha diya gaya hai.")
-        assert voice == "ur-PK-AsadNeural"
+        assert voice == "hi-IN-MadhurNeural"
         assert pitch == "-2Hz"
-        assert rate == "-4%"
+        assert rate == "-3%"
 
     def test_roman_urdu_greeting_selected(self) -> None:
         voice, _, _ = detect_voice_for_text("Jee Sir Abdullah, main theek hoon aur all systems fully operational hain.")
-        assert voice == "ur-PK-AsadNeural"
+        assert voice == "hi-IN-MadhurNeural"
 
     def test_nastaliq_urdu_script_selected(self) -> None:
         voice, pitch, rate = detect_voice_for_text("جی سر عبداللہ، تمام سسٹمز فعال ہیں۔")
@@ -108,13 +108,13 @@ class TestBilingualStatusPrefix:
 
 
 class TestBilingualFastPaths:
-    """Verifies that check_fast_path provides 0ms responses with authentic Urdu script."""
+    """Verifies that check_fast_path provides 0ms responses with authentic Hinglish."""
 
     def test_language_mode_switching(self) -> None:
         res_ur = check_fast_path("speak in urdu")
         assert res_ur is not None
-        assert "جی سر عبداللہ" in res_ur
-        assert "اردو" in res_ur
+        assert "Jee Sir Abdullah" in res_ur
+        assert "Hinglish" in res_ur or "Urdu" in res_ur
 
         res_en = check_fast_path("speak in english")
         assert res_en is not None
@@ -124,59 +124,59 @@ class TestBilingualFastPaths:
     def test_urdu_greetings(self) -> None:
         res1 = check_fast_path("kya haal hai")
         assert res1 is not None
-        assert "جی سر عبداللہ" in res1
-        assert "ٹھیک" in res1
+        assert "Jee Sir Abdullah" in res1
+        assert "theek" in res1
 
         res2 = check_fast_path("kaise ho jarvis")
         assert res2 is not None
-        assert "جی سر عبداللہ" in res2
+        assert "Jee Sir Abdullah" in res2
 
         res3 = check_fast_path("tum kaun ho")
         assert res3 is not None
-        assert "جاروس" in res3
+        assert "JARVIS" in res3
 
     def test_urdu_time_and_date(self) -> None:
         res_time = check_fast_path("kya time hai")
         assert res_time is not None
-        assert "جی سر عبداللہ" in res_time
-        assert "اس وقت" in res_time
+        assert "Jee Sir Abdullah" in res_time
+        assert "is waqt" in res_time
 
         res_waqt = check_fast_path("waqt batao")
         assert res_waqt is not None
-        assert "جی سر عبداللہ" in res_waqt
-        assert "اس وقت" in res_waqt
+        assert "Jee Sir Abdullah" in res_waqt
+        assert "is waqt" in res_waqt
 
         res_date = check_fast_path("aaj kya tareekh hai")
         assert res_date is not None
-        assert "جی سر عبداللہ" in res_date
-        assert "آج" in res_date
+        assert "Jee Sir Abdullah" in res_date
+        assert "aaj" in res_date
 
     @patch("actions.system.volume_up")
     def test_urdu_volume_up(self, mock_vol_up) -> None:
         res = check_fast_path("awaz barhao")
         assert res is not None
-        assert "والیم بڑھا دیا ہے" in res
+        assert "volume barha diya hai" in res
         mock_vol_up.assert_called_once()
 
     @patch("actions.system.volume_down")
     def test_urdu_volume_down(self, mock_vol_down) -> None:
         res = check_fast_path("awaz kam karo")
         assert res is not None
-        assert "والیم کم کر دیا ہے" in res
+        assert "volume kam kar diya hai" in res
         mock_vol_down.assert_called_once()
 
     @patch("actions.system.volume_mute")
     def test_urdu_volume_mute(self, mock_mute) -> None:
         res = check_fast_path("awaz band karo")
         assert res is not None
-        assert "آواز بند کر دی ہے" in res
+        assert "aawaz band kar di hai" in res
         mock_mute.assert_called_once()
 
     @patch("actions.system._empty_recycle_bin")
     def test_urdu_recycle_bin(self, mock_empty) -> None:
         res = check_fast_path("recycle bin saaf karo")
         assert res is not None
-        assert "ری سائیکل بن صاف" in res
+        assert "recycle bin saaf" in res
         mock_empty.assert_called_once()
 
     def test_english_commands_unaffected(self) -> None:

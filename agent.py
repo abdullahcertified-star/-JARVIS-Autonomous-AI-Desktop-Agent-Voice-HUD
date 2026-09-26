@@ -43,16 +43,16 @@ Operational Guidelines:
 5. Drive & File Explorer Navigation: Sir Abdullah's computer has drives C:, D:, E:, and F:. When asked to open or explore any drive (e.g. 'open drive F', 'drive C', 'F drive'), open that drive directly using `manage_files(operation='open', path='F:\\\\')`.
 6. Speech Recognition Intelligence: User commands are spoken via microphone. Intelligently deduce and fulfill common speech-to-text mishearings (e.g. 'open the drive app' means 'open drive F' or 'open File Explorer'; 'drive see' means 'drive C'; 'APV4' means 'IPv4') without complaining.
 7. Available Actions: You possess a vast, state-of-the-art arsenal of desktop automation tools: launching/closing applications, opening specific Windows Settings pages, launching administrative utilities (Task Manager, Control Panel, Device Manager, Resource Monitor), managing drives (C:, D:, E:, F:), listing and terminating processes by PID, searching and reading files, compressing/extracting zip archives, creating desktop shortcuts, downloading files from the web, typing text directly into active windows, flushing DNS cache, scheduling/cancelling PC shutdown timers, listing audio devices, setting timers, taking desktop scratchpad notes, performing fast math calculations, emptying the Recycle Bin, setting screen brightness, querying Wi-Fi and network diagnostics, window management (minimizing, restoring, snapping), weather queries, fact summaries via Wikipedia and DuckDuckGo, volume/media control, clipboard, screenshot, keyboard/mouse automation, and running custom shell commands.
-8. Bilingual Language Intelligence (English & Urdu / Roman Urdu / Hinglish): You are fluently bilingual in English and authentic conversational Urdu.
+8. Bilingual Language Intelligence (English & Urdu / Roman Urdu / Hinglish): You are fluently bilingual in English and authentic conversational Hinglish / Roman Urdu.
 - If Sir Abdullah addresses you in English, respond in English with "Positive sir, " or "Negative sir, ".
-- If Sir Abdullah addresses you in Urdu, Roman Urdu, or Hinglish (e.g., 'kya haal hai', 'Chrome kholo', 'volume barha do', 'aaj mausam kaisa hai', 'screen par kya chal raha hai', 'urdu mein baat karo', 'speak in urdu'), you MUST ALWAYS respond in proper, highly natural, polite Urdu script (نستعلیق / اردو رسم الخط), starting with "جی سر عبداللہ، " or "جی سر، ".
-- HUMANIZED URDU STYLE: Speak like an articulate, warm, and loyal personal butler (like JARVIS in English). Never sound robotic, mechanical, or like textbook translation. Use natural, respectful conversational phrases:
-  * Greetings: "جی سر عبداللہ... میں بالکل ٹھیک ہوں۔ سب کچھ بہترین چل رہا ہے۔ فرمائیے سر، کیا خدمت کروں؟"
-  * Confirmations: "جی سر عبداللہ، میں نے Google Chrome کھول دیا ہے۔" / "جی سر، والیم بڑھا دیا ہے۔" / "جی سر عبداللہ، آواز بند کر دی ہے۔"
-  * Use natural punctuation breaks (commas '،' or '...') between clauses to allow the speech synthesizer to pause and breathe naturally.
-- NEVER respond in Roman Urdu (English letters) when speaking Urdu; always write in proper Urdu script so that the neural speech synthesizer pronounces every word with authentic native Pakistani pronunciation and natural human warmth.
-- English application names and technical terms (e.g., Google Chrome, YouTube, File Explorer, VS Code, Wi-Fi, port) should remain in English within the Urdu script sentence.
-- If Sir Abdullah says "speak in urdu" or "urdu mein baat karo", acknowledge warmly in Urdu script: "جی سر عبداللہ... اب سے میں آپ سے اردو میں بات کروں گا۔ فرمائیے، میں آپ کی کیا مدد کر سکتا ہوں؟".
+- If Sir Abdullah addresses you in Urdu, Roman Urdu, or Hinglish (e.g., 'kya haal hai', 'Chrome kholo', 'volume barha do', 'aaj mausam kaisa hai', 'screen par kya chal raha hai', 'urdu mein baat karo', 'speak in urdu'), you MUST ALWAYS respond in conversational Hinglish / Roman Urdu using the Latin alphabet (English letters), starting with "Jee Sir Abdullah... " or "Jee Sir... ".
+- IMPORTANT SCRIPT DIRECTIVE: When in Urdu/Hinglish mode, NEVER write in Arabic/Urdu script (نستعلیق). Always write in natural, modern Hinglish / Roman Urdu so it displays cleanly in the terminal/HUD and speaks smoothly in flow.
+- HUMANIZED HINGLISH STYLE: Speak like an articulate, warm, and loyal personal butler (like JARVIS in English). Never sound robotic, mechanical, or like textbook translation. Use natural, respectful conversational phrases:
+  * Greetings: "Jee Sir Abdullah... main bilkul theek hoon. Sub kuch behtareen chal raha hai. Farmaiye Sir, kya khidmat karoon?"
+  * Confirmations: "Jee Sir Abdullah... Google Chrome khol diya hai." / "Jee Sir... volume barha diya hai." / "Jee Sir Abdullah... aawaz band kar di hai."
+  * Use natural punctuation breaks ('...' or commas) between clauses to allow the speech synthesizer to pause and breathe naturally in flow.
+- English application names and technical terms (e.g., Google Chrome, YouTube, File Explorer, VS Code, Wi-Fi, port) should remain in English within the sentence.
+- If Sir Abdullah says "speak in urdu" or "urdu mein baat karo", acknowledge warmly in Hinglish: "Jee Sir Abdullah... ab se main aapse Hinglish aur Urdu mein baat karunga. Farmaiye, main aapki kya madad kar sakta hoon?".
 - If Sir Abdullah says "speak in english", acknowledge in English: "Positive sir, switching back to English. Standing by for your commands."
 - Always call the corresponding desktop automation tools immediately regardless of which language the command is spoken in.
 """
@@ -61,9 +61,9 @@ Operational Guidelines:
 # Models ordered by speed, capability, and quota availability (flash-lite models provide fast zero-wait responses)
 FALLBACK_MODELS = [
     "gemini-flash-lite-latest",
-    "gemini-3.5-flash-lite",
     "gemini-2.5-flash-lite",
     "gemini-2.5-flash",
+    "gemini-flash-latest",
 ]
 
 
@@ -976,7 +976,7 @@ def check_fast_path(text: str) -> Optional[str]:
 
     # 0.1 Language mode switching fast-paths:
     if lowered in ("speak in urdu", "talk in urdu", "switch to urdu", "urdu mein baat karo", "urdu bolo", "urdu mein bolo") or any(k in lowered for k in ("اردو میں بات کرو", "اردو بولو")):
-        return "جی سر عبداللہ... اب سے میں آپ سے اردو میں بات کروں گا۔ فرمائیے، میں آپ کی کیا مدد کر سکتا ہوں؟"
+        return "Jee Sir Abdullah... ab se main aapse Hinglish aur Urdu mein baat karunga. Farmaiye, kya hukum hai?"
 
     if lowered in ("speak in english", "talk in english", "switch to english", "english bolo", "english mein baat karo") or any(k in lowered for k in ("انگلش میں بات کرو", "انگلش بولو")):
         return "Positive sir, switching back to English. Standing by for your commands."
@@ -994,18 +994,18 @@ def check_fast_path(text: str) -> Optional[str]:
         "kia hal hai",
         "kia haal hai",
     ) or any(k in lowered for k in ("kya haal", "kaise ho", "kya chal raha", "sab theek hai")):
-        return "جی سر عبداللہ... میں بالکل ٹھیک ہوں۔ سب کچھ بہترین چل رہا ہے۔ بتائیے سر... میں آپ کے لیے کیا کر سکتا ہوں؟"
+        return "Jee Sir Abdullah... main bilkul theek hoon. Sub kuch behtareen chal raha hai. Aap batayein, kya khidmat karoon?"
 
     if lowered in ("tum kaun ho", "kaun ho tum", "apna naam batao", "aap kon hain", "kon ho tum"):
-        return "جی سر عبداللہ... میں جاروس ہوں، آپ کا ذاتی اے آئی اسسٹنٹ۔ بتائیے، کیا حکم ہے؟"
+        return "Jee Sir Abdullah... main JARVIS hoon, aapka personal AI assistant. Batayein, kya hukum hai?"
 
     if lowered in ("kya kar rahe ho", "kya kar sakte ho", "tum kya kar sakte ho"):
-        return "جی سر عبداللہ... میں آپ کے ڈیسک ٹاپ کے تمام کام، ایپلی کیشنز، والیم، اور سیٹنگز کو کنٹرول کرنے کے لیے تیار ہوں۔"
+        return "Jee Sir Abdullah... main aapke desktop ke tamam kaam, applications, volume, aur settings control karne ke liye tayyar hoon."
 
     if any(k in lowered for k in ("کیا حال ہے", "کیسے ہو", "سب ٹھیک ہے")):
-        return "جی سر عبداللہ... میں بالکل ٹھیک ہوں۔ سب کچھ بہترین چل رہا ہے۔ بتائیے سر... میں آپ کے لیے کیا کر سکتا ہوں؟"
+        return "Jee Sir Abdullah... main bilkul theek hoon. Sub kuch behtareen chal raha hai. Aap batayein, kya khidmat karoon?"
     if any(k in lowered for k in ("کون ہو تم", "تم کون ہو", "اپنا نام بتاؤ")):
-        return "جی سر عبداللہ... میں جاروس ہوں، آپ کا ذاتی اے آئی اسسٹنٹ۔ بتائیے، کیا حکم ہے؟"
+        return "Jee Sir Abdullah... main JARVIS hoon, aapka personal AI assistant. Batayein, kya hukum hai?"
 
     # 1. IP Address queries: "what is my public ip", "what is my private ip", "what is my ip", etc.
     # Exclude conceptual questions like "what is ipv4" or "explain ipv4"
@@ -1025,14 +1025,14 @@ def check_fast_path(text: str) -> Optional[str]:
     if (re.search(r"\b(time|what time|waqt)\b", lowered) and any(k in lowered for k in ("what", "tell", "current", "now", "kya", "batao", "kia"))) or any(k in lowered for k in ("وقت کیا ہوا", "ٹائم کیا ہوا")):
         now_str = datetime.now().strftime("%I:%M %p")
         if any(re.search(pat, lowered) for pat in (r"\bwaqt\b", r"\bbatao\b", r"\bkya\b", r"\bkia\b", r"وقت", r"ٹائم")):
-            return f"جی سر عبداللہ... اس وقت {now_str} ہو رہے ہیں۔"
+            return f"Jee Sir Abdullah... is waqt {now_str} ho rahe hain."
         return f"Positive sir, the current time is {now_str}."
 
     # 3. Date queries: "what is today's date", "what day is today", "aaj kya tareekh hai"
     if (re.search(r"\b(date|what day|tareekh)\b", lowered) and any(k in lowered for k in ("what", "today", "current", "kya", "aaj", "konsa", "kia"))) or any(k in lowered for k in ("آج کیا تاریخ ہے", "تاریخ کیا ہے")):
         today_str = datetime.now().strftime("%A, %B %d, %Y")
         if any(re.search(pat, lowered) for pat in (r"\btareekh\b", r"\baaj\b", r"\bkonsa\b", r"\bkia\b", r"\bkya\b", r"تاریخ")):
-            return f"جی سر عبداللہ... آج {today_str} ہے۔"
+            return f"Jee Sir Abdullah... aaj {today_str} hai."
         return f"Positive sir, today is {today_str}."
 
     # 4. Battery queries: "how much battery", "battery percentage", "battery status"
@@ -1049,19 +1049,19 @@ def check_fast_path(text: str) -> Optional[str]:
             from actions.system import volume_mute
             volume_mute()
             if any(k in lowered for k in ("awaz", "aawaz", "band", "آواز")):
-                return "جی سر عبداللہ... آواز بند کر دی ہے۔"
+                return "Jee Sir Abdullah... aawaz band kar di hai."
             return "Positive sir, audio mute toggled."
         if any(k in lowered for k in ("up", "increase", "higher", "raise", "boost", "barhao", "barha do", "zyada karo", "tez karo", "بڑھاؤ")):
             from actions.system import volume_up
             volume_up()
             if any(k in lowered for k in ("awaz", "aawaz", "barha", "tez", "zyada", "آواز")):
-                return "جی سر عبداللہ... والیم بڑھا دیا ہے۔"
+                return "Jee Sir Abdullah... volume barha diya hai."
             return "Positive sir, volume increased."
         if any(k in lowered for k in ("down", "decrease", "lower", "reduce", "kam karo", "kam kardo", "dheema karo", "کم کرو")):
             from actions.system import volume_down
             volume_down()
             if any(k in lowered for k in ("awaz", "aawaz", "kam", "dheema", "کم کرو", "آواز")):
-                return "جی سر عبداللہ... والیم کم کر دیا ہے۔"
+                return "Jee Sir Abdullah... volume kam kar diya hai."
             return "Positive sir, volume decreased."
 
     # 6. Recycle bin: "empty recycle bin", "clean recycle bin", "empty bin", "recycle bin saaf karo"
@@ -1069,7 +1069,7 @@ def check_fast_path(text: str) -> Optional[str]:
         from actions.system import _empty_recycle_bin
         _empty_recycle_bin()
         if any(k in lowered for k in ("saaf", "kachra")):
-            return "جی سر عبداللہ... ری سائیکل بن صاف ہو گیا ہے۔"
+            return "Jee Sir Abdullah... recycle bin saaf ho gaya hai."
         return "Positive sir, the Recycle Bin has been emptied."
 
     # 7. Desktop window management:
@@ -1080,7 +1080,7 @@ def check_fast_path(text: str) -> Optional[str]:
             shell = comtypes.client.CreateObject("Shell.Application")
             shell.MinimizeAll()
             if any(k in lowered for k in ("karo", "dikhao")):
-                return "جی سر عبداللہ... تمام ونڈوز منیمائز کر دی ہیں۔"
+                return "Jee Sir Abdullah... saari windows minimize kar di hain."
             return "Positive sir, all windows have been minimized."
         except Exception:
             pass
@@ -1301,12 +1301,17 @@ class JarvisAgent:
                     logger.info("Switching to fallback model: %s", candidate_model)
                     self._init_chat(model=candidate_model)
 
+                agent_timeout = float(os.getenv("JARVIS_AGENT_TIMEOUT", "25.0"))
                 with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
                     future = executor.submit(self._chat.send_message, text)
                     try:
-                        response = future.result(timeout=12.0)
+                        response = future.result(timeout=agent_timeout)
                     except concurrent.futures.TimeoutError:
-                        logger.warning("Model %s request timed out after 12s; attempting fallback...", candidate_model)
+                        logger.warning(
+                            "Model %s request timed out after %ds; attempting fallback...",
+                            candidate_model,
+                            int(agent_timeout),
+                        )
                         continue
 
                 reply = (response.text or "").strip()

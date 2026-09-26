@@ -68,6 +68,14 @@ def enforce_status_prefix(text: str) -> str:
         prefix = "جی سر عبداللہ، " if classify_reply(cleaned) == "positive" else "معذرت سر، "
         return f"{prefix}{cleaned}"
 
+    # If in Roman Urdu / Hinglish without salutation
+    roman_urdu_patterns = (
+        r"\b(?:theek|khol|chala|band|barha|kam|saaf|khidmat|tayyar|kaam|aawaz|awaz|tareekh|waqt|karo|gaya|diya|karunga)\b",
+    )
+    if any(re.search(pat, cleaned.lower()) for pat in roman_urdu_patterns):
+        prefix = "Jee Sir Abdullah, " if classify_reply(cleaned) == "positive" else "Maazrat sir, "
+        return f"{prefix}{cleaned}"
+
     # Check if already starts with Positive/Affirmative
 
     pos_match = re.match(r"^(?:positive|affirmative)\s*,?\s*(?:sir|sir abdullah)?[,\s]*", cleaned, re.IGNORECASE)
@@ -443,8 +451,9 @@ def format_speech_ssml(text: str, comma_ms: int = 700, period_ms: int = 1000) ->
 
 
 def detect_voice_for_text(text: str) -> tuple[str, str, str]:
-    """Dynamically detects whether text is in Urdu (Nastaliq or Roman Urdu) or English,
-    and returns (voice_name, pitch, rate) for natural, native pronunciation."""
+    """Dynamically detects whether text is in Urdu (Nastaliq script),
+    Hinglish/Roman Urdu (Latin script), or English, and returns (voice_name, pitch, rate)
+    for authentic, humanized, in-flow pronunciation."""
     default_voice = getattr(config, "EDGE_VOICE", "en-US-ChristopherNeural")
     default_pitch = getattr(config, "EDGE_PITCH", "-4Hz")
     default_rate = getattr(config, "EDGE_RATE", "-2%")
@@ -453,23 +462,28 @@ def detect_voice_for_text(text: str) -> tuple[str, str, str]:
     urdu_pitch = getattr(config, "EDGE_URDU_PITCH", "-2Hz")
     urdu_rate = getattr(config, "EDGE_URDU_RATE", "-4%")
 
+    hinglish_voice = getattr(config, "EDGE_HINGLISH_VOICE", "hi-IN-MadhurNeural")
+    hinglish_pitch = getattr(config, "EDGE_HINGLISH_PITCH", "-2Hz")
+    hinglish_rate = getattr(config, "EDGE_HINGLISH_RATE", "-3%")
+
     if not text:
         return default_voice, default_pitch, default_rate
 
-    # 1. Direct Urdu Nastaliq / Arabic Unicode script detection
+    # 1. Direct Urdu Nastaliq / Arabic Unicode script detection -> Asad
     if re.search(r"[\u0600-\u06FF]", text):
         return urdu_voice, urdu_pitch, urdu_rate
 
-    # 2. Roman Urdu / Hinglish keyword patterns
+    # 2. Roman Urdu / Hinglish keyword patterns -> Madhur (humanized in-flow delivery)
     lowered = text.lower()
     roman_urdu_words = (
-        r"\b(?:jee|ji|haan|nahi|nahin|hukam|madad|karta|karti|suno|kholo|chalao|band\s+karo)\b",
+        r"\b(?:jee|ji|haan|nahi|nahin|hukam|hukum|madad|karta|karti|suno|kholo|chalao|band\s+karo)\b",
         r"\b(?:barha\s+do|barhao|kam\s+karo|shukriya|aapka|apka|mera|meri|kya\s+haal|kaise\s+ho)\b",
         r"\b(?:mausam|tareekh|waqt|batao|kardo|sahih\s+hai|theek\s+hai|janab|bhai|boli?ye|bataiye)\b",
         r"\b(?:khidmat|tayyar|taiyar|karunga|karungi|baat\s+karo|baat\s+karunga|ab\s+se)\b",
+        r"\b(?:kuch|kaam|gaana|aawaz|awaz|saaf|kardo|lagta|zyada|thoda|josh|pagal)\b",
     )
     if any(re.search(pat, lowered) for pat in roman_urdu_words):
-        return urdu_voice, urdu_pitch, urdu_rate
+        return hinglish_voice, hinglish_pitch, hinglish_rate
 
     return default_voice, default_pitch, default_rate
 
@@ -549,15 +563,18 @@ def convert_roman_urdu_to_script(text: str) -> str:
     return result
 
 
-def humanize_urdu_speech(text: str) -> str:
-    """Shapes Urdu speech for ultra-human, warm, non-robotic neural delivery:
-    1. Transliterates any Roman Urdu words to native script.
-    2. Replaces commas and punctuation with natural acoustic breath pauses (...).
-    3. Prevents flat robotic monotone by allowing the neural model to apply natural vocal decay and intonation.
+def humanize_urdu_speech(text: str, voice: str = "") -> str:
+    """Shapes Urdu and Hinglish speech for ultra-human, warm, in-flow neural delivery:
+    1. If target voice is Asad / Salman and text is Roman Urdu, transliterates known words.
+       If target voice is Madhur (Hinglish), preserves clean Latin script for fluent, unbroken articulation.
+    2. Replaces commas and clause transitions with natural acoustic breath pauses (...).
+    3. Normalizes breathing breaks around greetings (e.g. 'Jee Sir Abdullah...').
     """
     if not text:
         return ""
-    res = convert_roman_urdu_to_script(text)
+    res = text
+    if "Asad" in voice:
+        res = convert_roman_urdu_to_script(res)
     # Replace all commas (Urdu and English) with a single ellipsis breath break
     res = re.sub(r"[,،]\s*", r"... ", res)
     # Ensure natural space around sentence terminals (avoiding breaking ellipses)
@@ -635,8 +652,8 @@ class Speaker:
                 return False
 
             voice, pitch, rate = detect_voice_for_text(clean_text)
-            if "Asad" in voice or "Salman" in voice or "ur-" in voice or re.search(r"[\u0600-\u06FF]", clean_text):
-                clean_text = humanize_urdu_speech(clean_text)
+            if any(k in voice for k in ("Asad", "Salman", "Madhur")) or voice.startswith(("ur-", "hi-")) or re.search(r"[\u0600-\u06FF]", clean_text):
+                clean_text = humanize_urdu_speech(clean_text, voice=voice)
 
             async def _download_audio(content: str) -> bytes:
                 comm = edge_tts.Communicate(content, voice, pitch=pitch, rate=rate)
