@@ -7,6 +7,7 @@ from voice.pipeline import (
     detect_voice_for_text,
     enforce_status_prefix,
     convert_roman_urdu_to_script,
+    humanize_urdu_speech,
     Transcriber,
 )
 from voice import config
@@ -29,8 +30,8 @@ class TestVoiceAutoSwitch:
     def test_roman_urdu_selected(self) -> None:
         voice, pitch, rate = detect_voice_for_text("Jee Sir Abdullah, volume barha diya gaya hai.")
         assert voice == "ur-PK-AsadNeural"
-        assert pitch == "+0Hz"
-        assert rate == "+0%"
+        assert pitch == "-2Hz"
+        assert rate == "-4%"
 
     def test_roman_urdu_greeting_selected(self) -> None:
         voice, _, _ = detect_voice_for_text("Jee Sir Abdullah, main theek hoon aur all systems fully operational hain.")
@@ -39,8 +40,8 @@ class TestVoiceAutoSwitch:
     def test_nastaliq_urdu_script_selected(self) -> None:
         voice, pitch, rate = detect_voice_for_text("جی سر عبداللہ، تمام سسٹمز فعال ہیں۔")
         assert voice == "ur-PK-AsadNeural"
-        assert pitch == "+0Hz"
-        assert rate == "+0%"
+        assert pitch == "-2Hz"
+        assert rate == "-4%"
 
 
 class TestRomanToUrduScriptTransliteration:
@@ -72,6 +73,13 @@ class TestRomanToUrduScriptTransliteration:
         res = convert_roman_urdu_to_script(input_text)
         assert "Positive" in res
         assert "Google Chrome" in res
+
+    def test_humanize_urdu_speech_pauses(self) -> None:
+        input_text = "جی سر عبداللہ، میں بالکل ٹھیک ہوں۔ سب کچھ بہترین چل رہا ہے۔ بتائیے سر، کیا خدمت کروں؟"
+        res = humanize_urdu_speech(input_text)
+        assert "..." in res
+        assert "جی سر عبداللہ" in res
+        assert "ٹھیک ہوں" in res
 
 
 class TestBilingualStatusPrefix:
@@ -130,35 +138,38 @@ class TestBilingualFastPaths:
     def test_urdu_time_and_date(self) -> None:
         res_time = check_fast_path("kya time hai")
         assert res_time is not None
-        assert "جی سر عبداللہ، اس وقت" in res_time
+        assert "جی سر عبداللہ" in res_time
+        assert "اس وقت" in res_time
 
         res_waqt = check_fast_path("waqt batao")
         assert res_waqt is not None
-        assert "جی سر عبداللہ، اس وقت" in res_waqt
+        assert "جی سر عبداللہ" in res_waqt
+        assert "اس وقت" in res_waqt
 
         res_date = check_fast_path("aaj kya tareekh hai")
         assert res_date is not None
-        assert "جی سر عبداللہ، آج" in res_date
+        assert "جی سر عبداللہ" in res_date
+        assert "آج" in res_date
 
     @patch("actions.system.volume_up")
     def test_urdu_volume_up(self, mock_vol_up) -> None:
         res = check_fast_path("awaz barhao")
         assert res is not None
-        assert "والیم بڑھا دیا گیا ہے" in res
+        assert "والیم بڑھا دیا ہے" in res
         mock_vol_up.assert_called_once()
 
     @patch("actions.system.volume_down")
     def test_urdu_volume_down(self, mock_vol_down) -> None:
         res = check_fast_path("awaz kam karo")
         assert res is not None
-        assert "والیم کم کر دیا گیا ہے" in res
+        assert "والیم کم کر دیا ہے" in res
         mock_vol_down.assert_called_once()
 
     @patch("actions.system.volume_mute")
     def test_urdu_volume_mute(self, mock_mute) -> None:
         res = check_fast_path("awaz band karo")
         assert res is not None
-        assert "آواز بند کر دی گئی ہے" in res
+        assert "آواز بند کر دی ہے" in res
         mock_mute.assert_called_once()
 
     @patch("actions.system._empty_recycle_bin")

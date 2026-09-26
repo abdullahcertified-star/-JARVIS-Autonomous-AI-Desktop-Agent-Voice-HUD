@@ -155,14 +155,18 @@ JARVIS includes a floating desktop HUD featuring a Next.js/Three.js interactive 
   - Say *"Jarvis terminate yourself"*, *"shutdown jarvis"*, or *"exit"* to close the application and stop all background processes cleanly.
 
 
-### Bilingual Auto-Switch (English & Urdu / Roman Urdu / Hinglish)
+### Bilingual Auto-Switch & Humanized Urdu Voice (English & Urdu / Roman Urdu / Hinglish)
 - **Seamless Multilingual Listening**: Multilingual Whisper (`faster-whisper`) automatically transcribes and understands English, Urdu Nastaliq, Roman Urdu, and Hinglish with zero manual language switching.
 - **Dynamic Dual-Engine Speech Synthesis**: Intelligently auto-switches TTS voices in real-time:
   - **English**: Deep cinematic tone via `en-US-ChristopherNeural` (`-4Hz`, `-2%`).
-  - **Urdu / Roman Urdu**: Natural native pronunciation via Microsoft Edge Neural `ur-PK-AsadNeural` (`+0Hz`).
+  - **Humanized Urdu**: Cultured, warm, non-robotic delivery via `ur-PK-AsadNeural` (`-2Hz`, `-4%`).
+- **Ultra-Human Urdu Vocal Delivery (Non-Robotic)**:
+  - **Acoustic Breath Pauses**: Converts commas and clause transitions into acoustic breathing pauses (`... `), giving the neural model natural vocal decay and conversational cadence instead of flat, monotone rush.
+  - **Native Script Phoneme Shaping**: Transparently maps Roman Urdu and conversational words to native Nastaliq script before synthesis for authentic, native Pakistani Urdu pronunciation.
+  - **Warm Conversational Pitch**: Tuned to `-2Hz` pitch and `-4%` tempo to remove metallic synthesizer resonance and provide a rich, relaxed butler cadence.
 - **Conversational Language Mirroring**: Speaks to Sir Abdullah in whichever language he addresses the assistant in:
   - English: *"Positive sir, Google Chrome has been launched."*
-  - Urdu / Roman Urdu: *"Jee Sir Abdullah, volume barha diya gaya hai."* / *"Jee Sir Abdullah, is waqt 05:00 AM hue hain."*
+  - Urdu / Roman Urdu: *"جی سر عبداللہ... والیم بڑھا دیا ہے۔ فرمائیے، مزید کیا خدمت کروں؟"*
 - **0ms Bilingual Fast-Paths**: Instant zero-latency responses for Urdu greetings (*"kya haal hai"*, *"kaise ho"*), time/date (*"kya time hai"*, *"aaj kya tareekh hai"*), volume controls (*"awaz barhao"*, *"awaz kam karo"*, *"awaz band karo"*), and maintenance (*"recycle bin saaf karo"*).
 - **Clean Zero-Beep Audio**: Silent, professional voice UX without distracting speech-start or speech-end beeps.
 
@@ -209,7 +213,7 @@ scanner/                Windows filesystem, Start Menu, Registry, and Store app 
 search/                 RapidFuzz indexing over installed applications
 voice/                  Voice client: wake word listener, Whisper STT, TTS, and pywebview HUD
   web/                  Next.js 15 + Three.js holographic particle orb application
-tests/                  Pytest suite (158 automated unit and integration tests)
+tests/                  Pytest suite (159 automated unit and integration tests)
 ```
 
 ---
@@ -224,7 +228,7 @@ Run the full automated test suite (including command database, safety blocks, ag
 ```
 
 ```text
-======================= 158 passed, 1 warning in 21.21s =======================
+======================= 159 passed, 1 warning in 23.12s =======================
 ```
 
 ---

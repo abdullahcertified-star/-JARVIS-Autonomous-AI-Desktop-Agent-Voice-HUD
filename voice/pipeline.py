@@ -450,8 +450,8 @@ def detect_voice_for_text(text: str) -> tuple[str, str, str]:
     default_rate = getattr(config, "EDGE_RATE", "-2%")
 
     urdu_voice = getattr(config, "EDGE_URDU_VOICE", "ur-PK-AsadNeural")
-    urdu_pitch = getattr(config, "EDGE_URDU_PITCH", "+0Hz")
-    urdu_rate = getattr(config, "EDGE_URDU_RATE", "+0%")
+    urdu_pitch = getattr(config, "EDGE_URDU_PITCH", "-2Hz")
+    urdu_rate = getattr(config, "EDGE_URDU_RATE", "-4%")
 
     if not text:
         return default_voice, default_pitch, default_rate
@@ -549,6 +549,25 @@ def convert_roman_urdu_to_script(text: str) -> str:
     return result
 
 
+def humanize_urdu_speech(text: str) -> str:
+    """Shapes Urdu speech for ultra-human, warm, non-robotic neural delivery:
+    1. Transliterates any Roman Urdu words to native script.
+    2. Replaces commas and punctuation with natural acoustic breath pauses (...).
+    3. Prevents flat robotic monotone by allowing the neural model to apply natural vocal decay and intonation.
+    """
+    if not text:
+        return ""
+    res = convert_roman_urdu_to_script(text)
+    # Replace all commas (Urdu and English) with a single ellipsis breath break
+    res = re.sub(r"[,،]\s*", r"... ", res)
+    # Ensure natural space around sentence terminals (avoiding breaking ellipses)
+    res = re.sub(r"(?<!\.)([۔!?]|\.(?!\.))\s*", r"\1 ", res)
+    # Clean up duplicate dots or spaces
+    res = re.sub(r"\.{4,}", "...", res)
+    res = re.sub(r"\s+", " ", res).strip()
+    return res
+
+
 class Speaker:
 
     """Synthesizes speech with Google Gemini TTS or Edge Neural TTS.
@@ -616,8 +635,8 @@ class Speaker:
                 return False
 
             voice, pitch, rate = detect_voice_for_text(clean_text)
-            if "Asad" in voice or "ur-" in voice or re.search(r"[\u0600-\u06FF]", clean_text):
-                clean_text = convert_roman_urdu_to_script(clean_text)
+            if "Asad" in voice or "Salman" in voice or "ur-" in voice or re.search(r"[\u0600-\u06FF]", clean_text):
+                clean_text = humanize_urdu_speech(clean_text)
 
             async def _download_audio(content: str) -> bytes:
                 comm = edge_tts.Communicate(content, voice, pitch=pitch, rate=rate)
