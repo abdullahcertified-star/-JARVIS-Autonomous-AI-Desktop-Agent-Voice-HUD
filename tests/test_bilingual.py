@@ -30,8 +30,8 @@ class TestVoiceAutoSwitch:
     def test_roman_urdu_selected(self) -> None:
         voice, pitch, rate = detect_voice_for_text("Jee Sir Abdullah, volume barha diya gaya hai.")
         assert voice == "hi-IN-MadhurNeural"
-        assert pitch == "-2Hz"
-        assert rate == "-3%"
+        assert pitch == "+0Hz"
+        assert rate == "+2%"
 
     def test_roman_urdu_greeting_selected(self) -> None:
         voice, _, _ = detect_voice_for_text("Jee Sir Abdullah, main theek hoon aur all systems fully operational hain.")
@@ -40,8 +40,8 @@ class TestVoiceAutoSwitch:
     def test_nastaliq_urdu_script_selected(self) -> None:
         voice, pitch, rate = detect_voice_for_text("جی سر عبداللہ، تمام سسٹمز فعال ہیں۔")
         assert voice == "ur-PK-AsadNeural"
-        assert pitch == "-2Hz"
-        assert rate == "-4%"
+        assert pitch == "+0Hz"
+        assert rate == "+0%"
 
 
 class TestRomanToUrduScriptTransliteration:
@@ -74,10 +74,10 @@ class TestRomanToUrduScriptTransliteration:
         assert "Positive" in res
         assert "Google Chrome" in res
 
-    def test_humanize_urdu_speech_pauses(self) -> None:
-        input_text = "جی سر عبداللہ، میں بالکل ٹھیک ہوں۔ سب کچھ بہترین چل رہا ہے۔ بتائیے سر، کیا خدمت کروں؟"
+    def test_humanize_urdu_speech_flow(self) -> None:
+        input_text = "جی سر عبداللہ... میں بالکل ٹھیک ہوں۔ سب کچھ بہترین چل رہا ہے۔ بتائیے سر، کیا خدمت کروں؟"
         res = humanize_urdu_speech(input_text)
-        assert "..." in res
+        assert "..." not in res
         assert "جی سر عبداللہ" in res
         assert "ٹھیک ہوں" in res
 

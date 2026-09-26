@@ -459,12 +459,12 @@ def detect_voice_for_text(text: str) -> tuple[str, str, str]:
     default_rate = getattr(config, "EDGE_RATE", "-2%")
 
     urdu_voice = getattr(config, "EDGE_URDU_VOICE", "ur-PK-AsadNeural")
-    urdu_pitch = getattr(config, "EDGE_URDU_PITCH", "-2Hz")
-    urdu_rate = getattr(config, "EDGE_URDU_RATE", "-4%")
+    urdu_pitch = getattr(config, "EDGE_URDU_PITCH", "+0Hz")
+    urdu_rate = getattr(config, "EDGE_URDU_RATE", "+0%")
 
     hinglish_voice = getattr(config, "EDGE_HINGLISH_VOICE", "hi-IN-MadhurNeural")
-    hinglish_pitch = getattr(config, "EDGE_HINGLISH_PITCH", "-2Hz")
-    hinglish_rate = getattr(config, "EDGE_HINGLISH_RATE", "-3%")
+    hinglish_pitch = getattr(config, "EDGE_HINGLISH_PITCH", "+0Hz")
+    hinglish_rate = getattr(config, "EDGE_HINGLISH_RATE", "+2%")
 
     if not text:
         return default_voice, default_pitch, default_rate
@@ -567,20 +567,22 @@ def humanize_urdu_speech(text: str, voice: str = "") -> str:
     """Shapes Urdu and Hinglish speech for ultra-human, warm, in-flow neural delivery:
     1. If target voice is Asad / Salman and text is Roman Urdu, transliterates known words.
        If target voice is Madhur (Hinglish), preserves clean Latin script for fluent, unbroken articulation.
-    2. Replaces commas and clause transitions with natural acoustic breath pauses (...).
-    3. Normalizes breathing breaks around greetings (e.g. 'Jee Sir Abdullah...').
+    2. Replaces awkward pauses and ellipses with smooth conversational commas for continuous human flow.
+    3. Normalizes breathing breaks around greetings (e.g. 'Jee Sir Abdullah,').
     """
     if not text:
         return ""
     res = text
     if "Asad" in voice:
         res = convert_roman_urdu_to_script(res)
-    # Replace all commas (Urdu and English) with a single ellipsis breath break
-    res = re.sub(r"[,،]\s*", r"... ", res)
-    # Ensure natural space around sentence terminals (avoiding breaking ellipses)
-    res = re.sub(r"(?<!\.)([۔!?]|\.(?!\.))\s*", r"\1 ", res)
-    # Clean up duplicate dots or spaces
-    res = re.sub(r"\.{4,}", "...", res)
+    # Convert any awkward ellipses '...' to smooth commas so speech flows continuously
+    res = re.sub(r"\.{2,}", ", ", res)
+    # Ensure natural comma spacing
+    res = re.sub(r"[,،]\s*", r", ", res)
+    # Normalize multiple commas
+    res = re.sub(r",{2,}", ",", res)
+    # Ensure clean spacing around sentence terminals
+    res = re.sub(r"([.!?۔])\s*", r"\1 ", res)
     res = re.sub(r"\s+", " ", res).strip()
     return res
 
