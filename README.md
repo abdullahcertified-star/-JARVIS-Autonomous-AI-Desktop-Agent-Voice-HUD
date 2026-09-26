@@ -167,9 +167,17 @@ JARVIS includes a floating desktop HUD featuring a Next.js/Three.js interactive 
   - **Warm Conversational Pitch**: Tuned to `-2Hz` pitch and `-3%` tempo to remove metallic synthesizer resonance and provide a rich, relaxed butler cadence.
 - **Conversational Language Mirroring**: Speaks to Sir Abdullah in whichever language he addresses the assistant in:
   - English: *"Positive sir, Google Chrome has been launched."*
-  - Hinglish / Roman Urdu: *"Jee Sir Abdullah... volume barha diya hai. Farmaiye, aur kya khidmat karoon?"*
+  - Hinglish / Roman Urdu: *"Jee Sir Abdullah, Google Chrome khol diya hai. Farmaiye, aur kya khidmat karoon?"*
 - **0ms Bilingual Fast-Paths**: Instant zero-latency responses for greetings (*"kya haal hai"*, *"kaise ho"*), time/date (*"kya time hai"*, *"aaj kya tareekh hai"*), volume controls (*"awaz barhao"*, *"awaz kam karo"*, *"awaz band karo"*), and maintenance (*"recycle bin saaf karo"*).
 - **Clean Zero-Beep Audio**: Silent, professional voice UX without distracting speech-start or speech-end beeps.
+- **Authentic Pakistani Neural Voice**: Uses `ur-PK-AsadNeural` with behind-the-scenes Nastaliq phonetic transliteration for 100% native pronunciation and emotional inflection, while preserving clean Latin Roman Urdu / Hinglish on screen.
+
+### Network, IP & Hardware Addressing Engine
+- **Local Private IPv4**: Instant lookup via active network routing socket (`ipconfig`).
+- **Public WAN IP**: External discovery via secure routing endpoints (`https://api.ipify.org`, `ifconfig.me`).
+- **Physical Hardware MAC Address**: Automatically discovers the physical adapter's MAC address (e.g. Ethernet `FC-AA-14-E0-E9-4D`) while cleanly filtering out virtual adapters (VMware, VirtualBox, vEthernet).
+- **Default Gateway**: Queries and reports the active network gateway IP (`192.168.1.1`).
+- **Methodology & Command Explanations**: When asked *how* it finds your IP or MAC address or what commands are used (*"how do you find my public IP"*, *"what commands you use to find the IP address"*), JARVIS explains the exact diagnostic process and Windows CLI/PowerShell commands (`ipconfig`, `curl ifconfig.me`, `getmac /v`) instead of merely repeating the address value.
 
 ### Multimodal Screen Perception & Vision QA (Gemini VLM)
 - **Visual Desktop QA**: Ask *"Jarvis, what is on my screen?"*, *"Describe my screen"*, or *"What do you see?"* for an instant, natural summary of active windows and visual content.
@@ -198,7 +206,7 @@ JARVIS includes a floating desktop HUD featuring a Next.js/Three.js interactive 
 
 ```text
 app.py                  Flask HTTP API (/chat, /execute, /dashboard)
-agent.py                Gemini AI Agent with function calling & 0ms fast-paths
+agent.py                Gemini AI Agent with 41-section directive, function calling & 0ms fast-paths
 dispatcher.py           Central router, request validator, and latency logger
 config.py               Configuration, paths, environment variables
 actions/                Action domain handlers (context, macro, vision, command, apps, etc.)
@@ -214,7 +222,7 @@ scanner/                Windows filesystem, Start Menu, Registry, and Store app 
 search/                 RapidFuzz indexing over installed applications
 voice/                  Voice client: wake word listener, Whisper STT, TTS, and pywebview HUD
   web/                  Next.js 15 + Three.js holographic particle orb application
-tests/                  Pytest suite (159 automated unit and integration tests)
+tests/                  Pytest suite (160 automated unit and integration tests)
 ```
 
 ---
@@ -229,7 +237,7 @@ Run the full automated test suite (including command database, safety blocks, ag
 ```
 
 ```text
-======================= 159 passed, 1 warning in 23.12s =======================
+======================= 160 passed, 1 warning in 21.18s =======================
 ```
 
 ---
