@@ -124,6 +124,12 @@ _PHONETIC_FIXES = (
     (re.compile(r"\bdrive\s+dee\b", re.IGNORECASE), "drive D"),
     (re.compile(r"\bdrive\s+eff\b", re.IGNORECASE), "drive F"),
     (re.compile(r"\bdrive\s+gee\b", re.IGNORECASE), "drive G"),
+    # Common speech-to-text mishearings where 'Hinglish' was heard as 'English' in Urdu/Hinglish context:
+    (re.compile(r"\benglish\s+ke\s+an?dar\b", re.IGNORECASE), "hinglish ke andar"),
+    (re.compile(r"\benglish\s+me\s+kro\b", re.IGNORECASE), "hinglish mein karo"),
+    (re.compile(r"\benglish\s+mein\s+kro\b", re.IGNORECASE), "hinglish mein karo"),
+    (re.compile(r"\b(?:urdu|hindi)\s+(?:chhodo|choro|chorho)\s+.*?\benglish\b", re.IGNORECASE), lambda m: re.sub(r"\benglish\b", "hinglish", m.group(0), flags=re.I)),
+    (re.compile(r"\benglish\s+mein\s+baat\s+karo\b", re.IGNORECASE), "english mein baat karo"),
 )
 
 
@@ -303,9 +309,10 @@ class Transcriber:
 
             if raw_text:
                 lowered_raw = raw_text.lower()
-                if any(k in lowered_raw for k in ("speak in urdu", "talk in urdu", "urdu mein baat", "switch to urdu", "urdu bolo")):
-                    self._current_lang = "ur"
-                elif any(k in lowered_raw for k in ("speak in english", "talk in english", "switch to english", "english bolo", "انگلش")):
+                if any(k in lowered_raw for k in ("urdu", "hinglish", "roman urdu", "اردو", "ہنگلش")):
+                    if not any(k in lowered_raw for k in ("speak in english", "talk in english", "switch to english")):
+                        self._current_lang = "ur"
+                elif any(k in lowered_raw for k in ("speak in english", "talk in english", "switch to english", "english bolo", "english mode", "انگلش")):
                     self._current_lang = "en"
                 elif re.search(r"[\u0600-\u06FF]", raw_text):
                     self._current_lang = "ur"
@@ -462,9 +469,9 @@ def detect_voice_for_text(text: str) -> tuple[str, str, str]:
     urdu_pitch = getattr(config, "EDGE_URDU_PITCH", "+0Hz")
     urdu_rate = getattr(config, "EDGE_URDU_RATE", "+0%")
 
-    hinglish_voice = getattr(config, "EDGE_HINGLISH_VOICE", "hi-IN-MadhurNeural")
+    hinglish_voice = getattr(config, "EDGE_HINGLISH_VOICE", "ur-PK-AsadNeural")
     hinglish_pitch = getattr(config, "EDGE_HINGLISH_PITCH", "+0Hz")
-    hinglish_rate = getattr(config, "EDGE_HINGLISH_RATE", "+2%")
+    hinglish_rate = getattr(config, "EDGE_HINGLISH_RATE", "+0%")
 
     if not text:
         return default_voice, default_pitch, default_rate
@@ -473,7 +480,7 @@ def detect_voice_for_text(text: str) -> tuple[str, str, str]:
     if re.search(r"[\u0600-\u06FF]", text):
         return urdu_voice, urdu_pitch, urdu_rate
 
-    # 2. Roman Urdu / Hinglish keyword patterns -> Madhur (humanized in-flow delivery)
+    # 2. Roman Urdu / Hinglish keyword patterns -> Asad (with authentic Pakistani phonemes)
     lowered = text.lower()
     roman_urdu_words = (
         r"\b(?:jee|ji|haan|nahi|nahin|hukam|hukum|madad|karta|karti|suno|kholo|chalao|band\s+karo)\b",
@@ -524,24 +531,40 @@ ROMAN_URDU_PHRASES = (
 )
 
 ROMAN_URDU_WORDS = {
-    "main": "میں", "mein": "میں", "hoon": "ہوں", "hun": "ہوں", "hai": "ہے", "hain": "ہیں",
-    "theek": "ٹھیک", "thek": "ٹھیک", "sahi": "صحیح", "sahih": "صحیح",
+    "main": "میں", "mein": "میں", "hoon": "ہوں", "hun": "ہوں", "hai": "ہے", "hain": "ہیں", "ho": "ہو",
+    "theek": "ٹھیک", "thek": "ٹھیک", "sahi": "صحیح", "sahih": "صحیح", "bilkul": "بالکل",
+    "sub": "سب", "sab": "سب", "kuch": "کچھ", "behtareen": "بہترین", "acha": "اچھا", "achha": "اچھا", "achhi": "اچھی", "achhe": "اچھے",
     "aap": "آپ", "ap": "آپ", "tum": "تم", "tumhen": "تمہیں", "tumhein": "تمہیں",
     "aapka": "آپ کا", "apka": "آپ کا", "aapki": "آپ کی", "apki": "آپ کی", "aapke": "آپ کے", "apke": "آپ کے",
-    "mera": "میرا", "meri": "میری", "mere": "میرے",
-    "yeh": "یہ", "ye": "یہ", "woh": "وہ", "wo": "وہ", "is": "اس", "us": "اس",
-    "ka": "کا", "ki": "کی", "ke": "کے", "ko": "کو", "se": "سے", "par": "پر",
-    "aur": "اور", "bhi": "بھی", "to": "تو", "liye": "لیے", "lekin": "لیکن",
-    "baat": "بات", "karunga": "کروں گا", "karungi": "کروں گی", "karo": "کرو", "karna": "کرنا",
-    "boliye": "بولیے", "bataiye": "بتائیے", "batao": "بتاؤ", "suno": "سنو", "dikhao": "دکھاؤ", "kholo": "کھولو",
-    "chalao": "چلاؤ", "chal": "چل", "raha": "رہا", "rahi": "رہی", "rahe": "رہے",
+    "mera": "میرا", "meri": "میری", "mere": "میرے", "hamara": "ہمارا", "hamari": "ہماری", "hamare": "ہمارے",
+    "yeh": "یہ", "ye": "یہ", "woh": "وہ", "wo": "وہ", "is": "اس", "us": "اس", "in": "ان", "un": "ان",
+    "ka": "کا", "ki": "کی", "ke": "کے", "ko": "کو", "se": "سے", "par": "پر", "pe": "پر",
+    "aur": "اور", "bhi": "بھی", "to": "تو", "liye": "لیے", "lekin": "لیکن", "magar": "مگر",
+    "sath": "ساتھ", "saath": "ساتھ", "andar": "اندر", "ander": "اندر", "bahar": "باہر", "taraf": "طرف",
+    "baad": "بعد", "pehle": "پہلے", "pehlay": "پہلے",
+    "baat": "بات", "karein": "کریں", "karo": "کرو", "kardo": "کر دو", "karna": "کرنا",
+    "karunga": "کروں گا", "karungi": "کروں گی", "karoon": "کروں", "karon": "کروں",
+    "karta": "کرتا", "karti": "کرتی", "karte": "کرتے", "kiya": "کیا", "kardi": "کر دی", "kardiya": "کر دیا",
+    "bol": "بول", "bolo": "بولو", "boliye": "بولیے", "batao": "بتاؤ", "bataiye": "بتائیے", "batayein": "بتائیں", "batayen": "بتائیں",
+    "suno": "سنو", "suniye": "سنیے", "dekho": "دیکھو", "dekh": "دیکھ", "dikhao": "دکھاؤ",
+    "kholo": "کھولو", "khol": "کھول", "chalao": "چلاؤ", "chala": "چلا", "chal": "چل",
+    "raha": "رہا", "rahi": "رہی", "rahe": "رہے",
     "sakta": "سکتا", "sakti": "سکتی", "sakte": "سکتے", "saktay": "سکتے",
+    "chhodo": "چھوڑو", "choro": "چھوڑو", "chorho": "چھوڑو", "rakho": "رکھو", "rakh": "رکھ",
+    "aao": "آؤ", "aata": "آتا", "aati": "آتی", "aate": "آتے", "gaya": "گیا", "gayi": "گئی", "gaye": "گئے",
     "madad": "مدد", "khidmat": "خدمت", "tayyar": "تیار", "taiyar": "تیار", "hamesha": "ہمیشہ",
+    "hukum": "حکم", "hukm": "حکم", "farmaiye": "فرمائیے", "farmao": "فرماؤ", "shukriya": "شکریہ", "meherbani": "مہربانی",
     "kya": "کیا", "kia": "کیا", "kaise": "کیسے", "kaisa": "کیسا", "kaisi": "کیسی", "kaun": "کون", "kon": "کون",
-    "ab": "اب", "aaj": "آج", "kal": "کل", "waqt": "وقت", "tareekh": "تاریخ",
-    "urdu": "اردو", "english": "انگلش",
+    "kyun": "کیوں", "kyu": "کیوں", "kahan": "کہاں", "kidhar": "کدھر", "kab": "کب",
+    "kitna": "کتنا", "kitni": "کتنی", "kitne": "کتنے",
+    "ab": "اب", "abhi": "ابھی", "aaj": "آج", "kal": "کل", "parso": "پرسوں", "waqt": "وقت", "tareekh": "تاریخ",
+    "urdu": "اردو", "english": "انگلش", "hinglish": "ہنگلش", "roman": "رومن", "pure": "خالص",
+    "itna": "اتنا", "itni": "اتنی", "itne": "اتنے", "bohot": "بہت", "bohat": "بہت", "bahut": "بہت",
+    "thoda": "تھوڑا", "thodi": "تھوڑی", "thode": "تھوڑے", "zyada": "زیادہ", "ziyada": "زیادہ",
+    "josh": "جوش", "pagal": "پاگل", "saaf": "صاف", "tamam": "تمام", "saari": "ساری", "sari": "ساری",
+    "koi": "کوئی", "kisi": "کسی",
     "volume": "والیم", "awaz": "آواز", "aawaz": "آواز", "barhao": "بڑھاؤ", "barha": "بڑھا",
-    "kam": "کم", "band": "بند", "saaf": "صاف", "tamam": "تمام", "windows": "ونڈوز"
+    "kam": "کم", "band": "بند", "windows": "ونڈوز"
 }
 
 
@@ -573,8 +596,6 @@ def humanize_urdu_speech(text: str, voice: str = "") -> str:
     if not text:
         return ""
     res = text
-    if "Asad" in voice:
-        res = convert_roman_urdu_to_script(res)
     # Convert any awkward ellipses '...' to smooth commas so speech flows continuously
     res = re.sub(r"\.{2,}", ", ", res)
     # Ensure natural comma spacing
@@ -583,6 +604,10 @@ def humanize_urdu_speech(text: str, voice: str = "") -> str:
     res = re.sub(r",{2,}", ",", res)
     # Ensure clean spacing around sentence terminals
     res = re.sub(r"([.!?۔])\s*", r"\1 ", res)
+
+    if "Asad" in voice or "Salman" in voice or "ur-" in voice or not voice:
+        res = convert_roman_urdu_to_script(res)
+
     res = re.sub(r"\s+", " ", res).strip()
     return res
 

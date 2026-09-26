@@ -29,13 +29,13 @@ class TestVoiceAutoSwitch:
 
     def test_roman_urdu_selected(self) -> None:
         voice, pitch, rate = detect_voice_for_text("Jee Sir Abdullah, volume barha diya gaya hai.")
-        assert voice == "hi-IN-MadhurNeural"
+        assert voice == "ur-PK-AsadNeural"
         assert pitch == "+0Hz"
-        assert rate == "+2%"
+        assert rate == "+0%"
 
     def test_roman_urdu_greeting_selected(self) -> None:
         voice, _, _ = detect_voice_for_text("Jee Sir Abdullah, main theek hoon aur all systems fully operational hain.")
-        assert voice == "hi-IN-MadhurNeural"
+        assert voice == "ur-PK-AsadNeural"
 
     def test_nastaliq_urdu_script_selected(self) -> None:
         voice, pitch, rate = detect_voice_for_text("جی سر عبداللہ، تمام سسٹمز فعال ہیں۔")
@@ -115,6 +115,16 @@ class TestBilingualFastPaths:
         assert res_ur is not None
         assert "Jee Sir Abdullah" in res_ur
         assert "Hinglish" in res_ur or "Urdu" in res_ur
+
+        res_hinglish = check_fast_path("urdu chhodo tum itna karo mere sath mein hinglish ke andar baat karo")
+        assert res_hinglish is not None
+        assert "Jee Sir Abdullah" in res_hinglish
+        assert "Hinglish" in res_hinglish
+        assert "Positive sir" not in res_hinglish
+
+        res_kro = check_fast_path("hinglish me kro")
+        assert res_kro is not None
+        assert "Jee Sir Abdullah" in res_kro
 
         res_en = check_fast_path("speak in english")
         assert res_en is not None

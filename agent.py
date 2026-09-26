@@ -975,10 +975,22 @@ def check_fast_path(text: str) -> Optional[str]:
         return "All systems functioning at peak efficiency, sir. How may I be of service?"
 
     # 0.1 Language mode switching fast-paths:
-    if lowered in ("speak in urdu", "talk in urdu", "switch to urdu", "urdu mein baat karo", "urdu bolo", "urdu mein bolo") or any(k in lowered for k in ("اردو میں بات کرو", "اردو بولو")):
-        return "Jee Sir Abdullah, ab se main aapse Roman Urdu mein baat karunga. Farmaiye, kya hukum hai?"
+    if (
+        lowered in ("speak in urdu", "talk in urdu", "switch to urdu", "urdu mein baat karo", "urdu bolo", "urdu mein bolo")
+        or any(k in lowered for k in ("اردو میں بات کرو", "اردو بولو"))
+        or any(k in lowered for k in (
+            "hinglish mein baat karo", "hinglish bolo", "hinglish ke andar baat karo",
+            "hinglish mode", "switch to hinglish", "talk in hinglish", "hinglish me kro", "hinglish me karo",
+            "urdu chhodo", "urdu choro", "urdu chorho"
+        ))
+        or (("urdu" in lowered or "hinglish" in lowered) and any(k in lowered for k in ("baat karo", "bolo", "shift", "switch", "andar", "mode", "kro", "karo")))
+    ):
+        return "Jee Sir Abdullah! Ab se main aapse pure Hinglish aur Roman Urdu mein baat karunga. Farmaiye, kya hukum hai?"
 
-    if lowered in ("speak in english", "talk in english", "switch to english", "english bolo", "english mein baat karo") or any(k in lowered for k in ("انگلش میں بات کرو", "انگلش بولو")):
+    if (
+        lowered in ("speak in english", "talk in english", "switch to english", "english bolo", "english mode", "shift to english")
+        or any(k in lowered for k in ("انگلش میں بات کرو", "انگلش بولو"))
+    ) and not any(k in lowered for k in ("urdu", "hinglish", "chhodo", "choro", "andar", "kro")):
         return "Positive sir, switching back to English. Standing by for your commands."
 
     # 0.2 Bilingual (Urdu / Roman Urdu / Hinglish) greetings and status checks:
